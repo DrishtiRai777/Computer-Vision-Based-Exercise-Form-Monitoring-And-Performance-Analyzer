@@ -1,0 +1,3 @@
+users = []
+exercises = []
+sessions = []
