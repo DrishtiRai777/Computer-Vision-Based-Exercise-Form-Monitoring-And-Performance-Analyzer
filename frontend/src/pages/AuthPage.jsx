@@ -1,0 +1,161 @@
+import React, { useState } from "react";
+import "./AuthPage.css";
+import { Link } from "react-router-dom";
+
+function AuthPage() {
+  const [formData, setFormData] = useState({
+  username: "",
+  email: "",
+  phone: "",
+  password: "",
+  confirmPassword: ""
+});
+
+const [error, setError] = useState("");
+const handleChange = (e) => {
+  setFormData({
+    ...formData,
+    [e.target.name]: e.target.value
+  });
+};
+const handleSubmit = (e) => {
+  e.preventDefault();
+
+  const { username, email, phone, password, confirmPassword } = formData;
+
+  if (!username || !email || !phone || !password || !confirmPassword) {
+    setError("All fields are required");
+    return;
+  }
+
+  if (!/^[0-9]{10}$/.test(phone)) {
+    setError("Phone number must be 10 digits");
+    return;
+  }
+
+  if (password.length < 8) {
+    setError("Password must be at least 8 characters");
+    return;
+  }
+
+  if (password !== confirmPassword) {
+    setError("Passwords do not match");
+    return;
+  }
+
+  setError("");
+  alert("Signup successful!");
+};
+  return (
+    <div className="auth-wrapper">
+
+      <div className="auth-card">
+
+        {/* LEFT IMAGE AREA */}
+
+        <div className="auth-left">
+
+          <img
+            src="/posture.png"
+            alt="exercise"
+            className="auth-image"
+          />
+
+        </div>
+
+
+        {/* RIGHT FORM AREA */}
+
+        <div className="auth-right">
+
+          <h1 className="auth-title">WELCOME</h1>
+
+          <p className="auth-subtitle">
+            Sign Up to continue to Exercise posture analysis
+          </p>
+
+          <p className="login-text">
+  Already have an account? 
+  <Link to="/login"><span>Login</span></Link>
+</p>
+
+
+          <form className="auth-form" onSubmit={handleSubmit}>
+
+            <input
+  type="text"
+  placeholder="Username"
+  name="username"
+  value={formData.username}
+  onChange={handleChange}
+/>
+
+<input
+  type="email"
+  placeholder="Email"
+  name="email"
+  value={formData.email}
+  onChange={handleChange}
+/>
+
+<input
+  type="tel"
+  placeholder="Phone Number"
+  name="phone"
+  value={formData.phone}
+  onChange={handleChange}
+/>
+
+<input
+  type="password"
+  placeholder="Create Password"
+  name="password"
+  value={formData.password}
+  onChange={handleChange}
+/>
+
+<input
+  type="password"
+  placeholder="Confirm Password"
+  name="confirmPassword"
+  value={formData.confirmPassword}
+  onChange={handleChange}
+/>
+            {error && <p className="error-text">{error}</p>}
+            <button className="signup-btn">
+              Sign Up
+            </button>
+
+          </form>
+
+
+          <div className="divider">
+            OR
+          </div>
+
+
+          <button className="google-btn">
+
+            <img
+              src="https://cdn-icons-png.flaticon.com/512/300/300221.png"
+              alt="google"
+            />
+
+            Sign up with Google
+
+          </button>
+
+          
+          <p className="terms">
+            By signing up you agree to the ToS and Privacy Policy
+          </p>
+
+        </div>
+
+      </div>
+
+    </div>
+  );
+}
+
+export default AuthPage;
