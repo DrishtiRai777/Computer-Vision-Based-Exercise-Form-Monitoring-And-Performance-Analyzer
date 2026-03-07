@@ -8,6 +8,8 @@ import HowItWorks from "./components/HowItWorks";
 import Features from "./components/Features";
 
 import Exercises from "./pages/Exercises";
+import AuthPage from "./pages/AuthPage";
+import LoginPage from "./pages/LoginPage";
 
 function Home() {
   return (
@@ -28,6 +30,8 @@ function App() {
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/exercises" element={<Exercises />} />
+        <Route path="/auth" element={<AuthPage />} />
+        <Route path="/login" element={<LoginPage />} />
       </Routes>
 
       <Footer />

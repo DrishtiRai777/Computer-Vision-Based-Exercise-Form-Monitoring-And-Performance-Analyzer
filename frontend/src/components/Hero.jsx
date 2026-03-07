@@ -18,7 +18,9 @@ function Hero() {
             <button className="btn solid">Explore Exercises</button>
         </Link>
 
-          <button className="btn outline">Sign In/Up</button>
+          <Link to="/auth">
+  <button className="btn outline">Sign In/Up</button>
+</Link>
         </div>
 
         <a href="/" className="learn-more">

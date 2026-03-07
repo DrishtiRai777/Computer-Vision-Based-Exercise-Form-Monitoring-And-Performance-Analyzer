@@ -14,7 +14,9 @@ function Navbar() {
                 Explore Exercises
             </button>
         </Link>
-        <button className="btn solid">Sign In/Up</button>
+        <Link to="/auth">
+  <button className="btn solid">Sign In/Up</button>
+</Link>
       </div>
     </nav>
   );
