@@ -1,52 +1,46 @@
-from fastapi import APIRouter, HTTPException
-from pydantic import BaseModel 
-from app.dummydb.data import users
+from fastapi import APIRouter, Depends
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select
 
+from app.database import get_db
+from app.models.session import Session as SessionModel
+from app.models.user import User
+from app.services.llm_service import generate_overall_feedback_from_sessions
 
 router = APIRouter()
 
-class User(BaseModel):
-    username: str
-    pswd: str
 
-# Get all users
-@router.get("/users")
-def get_users():
-    return users
+@router.get("/users/{user_id}/overall-feedback")
+async def get_overall_feedback(user_id: int, db: AsyncSession = Depends(get_db)):
+    try:
+        result = await db.execute(
+            select(SessionModel).where(SessionModel.user_id == user_id)
+        )
 
-# Create a user
-@router.post("/users")
-def create_user(user: User):
-    new_user = user.model_dump()
-    new_user["userid"] = len(users) + 1  # id
-    users.append(new_user)
-    return new_user
+        sessions = result.scalars().all()
 
-# Delete user
-@router.delete("/users/{user_id}")
-def delete_user(user_id: int):
-    for i, u in enumerate(users):
-        if u["userid"] == user_id:
-            users.pop(i)
-            return {"message": "User deleted"}
-    raise HTTPException(status_code=404, detail="User not found")
+        if not sessions:
+            return {"message": "No sessions found"}
 
+        feedback_list = [s.session_feedback for s in sessions]
 
-# Update user info
-@router.put("/users/{user_id}")
-def update_user(user_id: int, updated_user: User):
-    for i, u in enumerate(users):
-        if u["userid"] == user_id:
-            users[i].update(updated_user.model_dump())
-            return users[i]
-    
-    raise HTTPException(status_code=404, detail="User not found")
+        overall_feedback = generate_overall_feedback_from_sessions(feedback_list)
 
+        result = await db.execute(
+            select(User).where(User.user_id == user_id)
+        )
 
-# Get user by id
-@router.get("/users/{user_id}")
-def get_user(user_id: int):
-    for u in users:
-        if u["userid"] == user_id:
-            return u
-    raise HTTPException(status_code=404, detail="User not found")
+        user = result.scalar_one_or_none()
+
+        if user:
+            user.overall_feedback = overall_feedback
+            await db.commit()
+
+        return {
+            "user_id": user_id,
+            "overall_feedback": overall_feedback
+        }
+
+    except Exception as e:
+        await db.rollback()
+        raise e
