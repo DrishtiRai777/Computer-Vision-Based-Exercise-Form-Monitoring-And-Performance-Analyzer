@@ -1,5 +1,6 @@
 import "./exercises.css";
 import { FaPlay } from "react-icons/fa";
+import { useNavigate } from "react-router-dom";
 
 function Exercises() {
 
@@ -10,7 +11,11 @@ function Exercises() {
     { name: "Squats", img: "/squats.png" },
     { name: "Glute Bridge", img: "/glute bridge.png" }
   ];
+  const navigate = useNavigate();
 
+const startExercise = (exerciseName) => {
+  navigate("/analysis", { state: { exercise: exerciseName } });
+};
   return (
     <div className="exercise-page">
 
@@ -27,7 +32,7 @@ function Exercises() {
 
             <h3>{ex.name}</h3>
 
-            <button className="try-btn">
+            <button className="try-btn" onClick={() => startExercise(ex.name)}>
                 <FaPlay style={{marginRight:"8px"}}/>
                     Try
             </button>

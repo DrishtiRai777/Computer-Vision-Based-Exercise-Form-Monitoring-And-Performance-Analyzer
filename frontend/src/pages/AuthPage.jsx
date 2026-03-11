@@ -54,7 +54,7 @@ const handleSubmit = (e) => {
         {/* LEFT IMAGE AREA */}
 
         <div className="auth-left">
-
+          
           <img
             src="/posture.png"
             alt="exercise"
@@ -73,6 +73,7 @@ const handleSubmit = (e) => {
           <p className="auth-subtitle">
             Sign Up to continue to Exercise posture analysis
           </p>
+         
 
           <p className="login-text">
   Already have an account? 
@@ -153,7 +154,7 @@ const handleSubmit = (e) => {
         </div>
 
       </div>
-
+      
     </div>
   );
 }

@@ -1,21 +1,23 @@
 .auth-wrapper{
-  height:100vh;
+  min-height:100vh;
   width:100%;
   background:#2e2e2e;
   display:flex;
   justify-content:center;
   align-items:center;
+  padding:40px 0;
   font-family:'Poppins',sans-serif;
 }
 
-.auth-card{
-  width:1100px;
-  height:650px;
-  background:white;
-  border-radius:12px;
-  overflow:hidden;
-  display:flex;
-  box-shadow:0 20px 40px rgba(0,0,0,0.25);
+.auth-card {
+  width: 1100px;
+  /* Change 'height' to 'min-height' */
+  min-height: 650px; 
+  background: white;
+  border-radius: 12px;
+  /* overflow: hidden; */ /* Optional: remove if you still see clipping */
+  display: flex;
+  box-shadow: 0 20px 40px rgba(0,0,0,0.25);
 }
 
 /* LEFT SIDE */
@@ -28,6 +30,7 @@
   justify-content:center;
   align-items:center;
   border-bottom-right-radius:120px;
+  align-self: stretch
 }
 
 .auth-image{
@@ -37,13 +40,14 @@
 
 /* RIGHT SIDE */
 
-.auth-right{
-  flex:1;
-  padding:60px;
-  text-align:center;
-  display:flex;
-  flex-direction:column;
-  justify-content:center;
+.auth-right {
+  flex: 1;
+  padding: 60px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  /* Change 'center' to 'flex-start' if you want it to align from the top */
+  justify-content: center; 
 }
 
 .auth-title{
@@ -128,7 +132,7 @@
 
 .terms{
   font-size:12px;
-  margin-top:20px;
+  margin-top:25px;
   color:#777;
 }
 
