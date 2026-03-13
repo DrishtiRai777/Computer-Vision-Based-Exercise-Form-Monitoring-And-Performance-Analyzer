@@ -1,50 +1,58 @@
-from fastapi import APIRouter, HTTPException
-from pydantic import BaseModel
-from app.dummydb.data import exercises
+from fastapi import APIRouter, Depends, HTTPException, Body
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select
 
-router = APIRouter()
+from app.database import get_db
+from app.models.exercise import Exercise
 
-class Exercise(BaseModel):
-    name: str
+router = APIRouter(prefix="/exercises", tags=["Exercises"])
+
+
+# Create exercise
+@router.post("/")
+async def create_exercise(
+    exercise_name: str = Body(...),
+    db: AsyncSession = Depends(get_db)
+):
+    exercise = Exercise(exercise_name=exercise_name)
+
+    db.add(exercise)
+    await db.commit()
+    await db.refresh(exercise)
+
+    return exercise
+
 
 # Get all exercises
-@router.get("/exercises")
-def get_exercises():
+@router.get("/")
+async def get_exercises(db: AsyncSession = Depends(get_db)):
+
+    result = await db.execute(select(Exercise))
+    exercises = result.scalars().all()
+
     return exercises
 
-# Get exercise by id
-@router.get("/exercises/{exercise_id}")
-def get_exercise(exercise_id: int):
-    for e in exercises:
-        if e["exercise_id"] == exercise_id:
-            return e
-    raise HTTPException(status_code=404, detail="User not found")
-
-
-# Delete exercise
-@router.delete("/exercises/{exercise_id}")
-def delete_exercise(exercise_id: int):
-    for i, e in enumerate(exercises):
-        if e["exercise_id"] == exercise_id:
-            exercises.pop(i)
-            return {"message": "Exercise deleted"}
-    raise HTTPException(status_code=404, detail="Exercise not found")
-
-
-# Create new exercise
-@router.post("/exercises")
-def create_exercise(exercise: Exercise):
-    new_exer = exercise.model_dump()
-    new_exer["exercise_id"] = len(exercises) + 1 
-    exercises.append(new_exer)
-    return new_exer
 
 # Update exercise
-@router.put("/exercises/{exercise_id}")
-def update_exercise(exercise_id: int, updated_exercise: Exercise):
-    for i, e in enumerate(exercises):
-        if e["exercise_id"] == exercise_id:
-            exercises[i].update(updated_exercise.model_dump())
-            return exercises[i]
-        
-    raise HTTPException(status_code=404, detail="Exercise not found")
+@router.put("/{exercise_id}")
+async def update_exercise(
+    exercise_id: int,
+    exercise_name: str = Body(...),
+    db: AsyncSession = Depends(get_db)
+):
+
+    result = await db.execute(
+        select(Exercise).where(Exercise.exercise_id == exercise_id)
+    )
+
+    exercise = result.scalar_one_or_none()
+
+    if exercise is None:
+        raise HTTPException(status_code=404, detail="Exercise not found")
+
+    exercise.exercise_name = exercise_name
+
+    await db.commit()
+    await db.refresh(exercise)
+
+    return exercise

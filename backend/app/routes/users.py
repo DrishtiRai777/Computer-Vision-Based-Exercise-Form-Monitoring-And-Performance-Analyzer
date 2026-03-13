@@ -1,52 +1,45 @@
-from fastapi import APIRouter, HTTPException
-from pydantic import BaseModel 
-from app.dummydb.data import users
+from fastapi import APIRouter, Depends
+from pydantic import BaseModel
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select
+
+from app.database import get_db
+from app.services.auth_service import authenticate_google_user
+from app.models.user import User
+
+router = APIRouter(prefix="/users", tags=["users"])
 
 
-router = APIRouter()
+class GoogleAuthRequest(BaseModel):
+    token: str
 
-class User(BaseModel):
-    username: str
-    pswd: str
+
+@router.post("/auth/google")
+async def google_auth(data: GoogleAuthRequest, db: AsyncSession = Depends(get_db)):
+    user = await authenticate_google_user(data.token, db)
+
+    return {
+        "user_id": user.user_id,
+        "google_id": user.google_id,
+        "email": user.email,
+        "name": user.name,
+        "created_at": user.created_at
+    }
+
 
 # Get all users
-@router.get("/users")
-def get_users():
-    return users
+@router.get("/")
+async def get_all_users(db: AsyncSession = Depends(get_db)):
+    result = await db.execute(select(User))
+    users = result.scalars().all()
 
-# Create a user
-@router.post("/users")
-def create_user(user: User):
-    new_user = user.model_dump()
-    new_user["userid"] = len(users) + 1  # id
-    users.append(new_user)
-    return new_user
-
-# Delete user
-@router.delete("/users/{user_id}")
-def delete_user(user_id: int):
-    for i, u in enumerate(users):
-        if u["userid"] == user_id:
-            users.pop(i)
-            return {"message": "User deleted"}
-    raise HTTPException(status_code=404, detail="User not found")
-
-
-# Update user info
-@router.put("/users/{user_id}")
-def update_user(user_id: int, updated_user: User):
-    for i, u in enumerate(users):
-        if u["userid"] == user_id:
-            users[i].update(updated_user.model_dump())
-            return users[i]
-    
-    raise HTTPException(status_code=404, detail="User not found")
-
-
-# Get user by id
-@router.get("/users/{user_id}")
-def get_user(user_id: int):
-    for u in users:
-        if u["userid"] == user_id:
-            return u
-    raise HTTPException(status_code=404, detail="User not found")
+    return [
+        {
+            "user_id": user.user_id,
+            "google_id": user.google_id,
+            "email": user.email,
+            "name": user.name,
+            "created_at": user.created_at
+        }
+        for user in users
+    ]
