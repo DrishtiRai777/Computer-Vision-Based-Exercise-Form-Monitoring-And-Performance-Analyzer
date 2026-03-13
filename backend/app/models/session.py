@@ -17,3 +17,5 @@ class Session(Base):
     session_time = Column(Integer)
 
     session_feedback = Column(Text)
+
+    reps = Column(Integer)
