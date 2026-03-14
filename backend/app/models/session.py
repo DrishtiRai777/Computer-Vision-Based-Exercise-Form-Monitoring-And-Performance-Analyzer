@@ -8,7 +8,7 @@ from app.database import Base
 class Session(Base):
     __tablename__ = "sessions"
 
-    session_id = Column(Integer, primary_key=True, index=True)
+    session_id = Column(Integer, primary_key=True, index=True, autoincrement=True)
 
     user_id = Column(Integer, ForeignKey("users.user_id"), nullable=False)
 

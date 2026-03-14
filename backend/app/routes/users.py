@@ -1,11 +1,13 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
+from sqlalchemy.future import select
 
 from app.database import get_db
 from app.services.auth_service import authenticate_google_user
 from app.models.user import User
+from app.models.session import Session as SessionModel
+from app.services.llm_service import generate_overall_feedback_from_sessions
 
 router = APIRouter(prefix="/users", tags=["users"])
 
@@ -13,11 +15,10 @@ router = APIRouter(prefix="/users", tags=["users"])
 class GoogleAuthRequest(BaseModel):
     token: str
 
-
+# Google Auth
 @router.post("/auth/google")
 async def google_auth(data: GoogleAuthRequest, db: AsyncSession = Depends(get_db)):
     user = await authenticate_google_user(data.token, db)
-
     return {
         "user_id": user.user_id,
         "google_id": user.google_id,
@@ -26,13 +27,11 @@ async def google_auth(data: GoogleAuthRequest, db: AsyncSession = Depends(get_db
         "created_at": user.created_at
     }
 
-
-# Get all users
+# Get all the users
 @router.get("/")
 async def get_all_users(db: AsyncSession = Depends(get_db)):
     result = await db.execute(select(User))
     users = result.scalars().all()
-
     return [
         {
             "user_id": user.user_id,
@@ -43,3 +42,38 @@ async def get_all_users(db: AsyncSession = Depends(get_db)):
         }
         for user in users
     ]
+
+# Generate overall-feedback for user
+# Fetch all sessions for the user, generate overall feedback using LLM, and update the existing user row with the new overall feedback.
+@router.post("/{user_id}/overall-feedback")
+async def update_user_overall_feedback(user_id: int, db: AsyncSession = Depends(get_db)):
+    # Fetch all sessions
+    result = await db.execute(select(SessionModel).where(SessionModel.user_id == user_id))
+    sessions = result.scalars().all()
+
+    if not sessions:
+        raise HTTPException(status_code=404, detail="No sessions found for this user")
+
+    feedback_list = [s.session_feedback for s in sessions if s.session_feedback]
+
+    if not feedback_list:
+        raise HTTPException(status_code=404, detail="No session feedback available for this user")
+
+    # Feedback using LLM
+    overall_feedback_text = generate_overall_feedback_from_sessions(feedback_list)
+
+    # Fetch the user row
+    result = await db.execute(select(User).where(User.user_id == user_id))
+    user = result.scalars().first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    # Update user row
+    user.overall_feedback = overall_feedback_text
+    await db.commit()
+    await db.refresh(user)
+
+    return {
+        "user_id": user.user_id,
+        "overall_feedback": user.overall_feedback
+    }
