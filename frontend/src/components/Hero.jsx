@@ -28,13 +28,16 @@ function Hero() {
         </a>
       </div>
 
-      <div className="hero-image">
-        <img
-          src="/posture.png"
-          alt="Exercise Pose"
-          className="hero-img float"
-        />
-      </div>
+      
+<div className="hero-image">
+  <div className="image-glow-wrapper"> {/* Added this wrapper */}
+    <img
+      src="/posture.png"
+      alt="Exercise Pose"
+      className="hero-img float"
+    />
+  </div>
+</div>
     </section>
   );
 }

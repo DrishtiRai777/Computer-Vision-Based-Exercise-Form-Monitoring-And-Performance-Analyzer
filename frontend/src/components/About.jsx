@@ -4,7 +4,9 @@ function About() {
   return (
     <section className="about">
       <div className="about-image">
-        <img src="/posture.png" alt="About" />
+        <div className="image-glow-wrapper">
+          <img src="/posture.png" alt="About" />
+        </div>
       </div>
 
       <div className="about-text">

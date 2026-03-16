@@ -4,7 +4,7 @@ function Navbar() {
   return (
     <nav className="navbar">
       <div className="logo">
-        <span>🏃</span>
+        <img src="/posture.png" alt="Logo" className="nav-logo-img" />
         <h2>Exercise Posture Analysis</h2>
       </div>
 
