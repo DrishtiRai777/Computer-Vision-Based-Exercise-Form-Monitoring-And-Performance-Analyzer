@@ -7,7 +7,7 @@ function Exercises() {
   const exercises = [
     { name: "Lunges", img: "/lunges.png" },
     { name: "Planks", img: "/planks.png" },
-    { name: "Push Ups", img: "/pushups.png" },
+    { name: "Pushups", img: "/pushups.png" },
     { name: "Squats", img: "/squats.png" },
     { name: "Glute Bridge", img: "/glute bridge.png" }
   ];

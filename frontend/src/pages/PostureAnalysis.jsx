@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { useLocation } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { Pose } from "@mediapipe/pose";
 import { Camera } from "@mediapipe/camera_utils";
 
@@ -8,9 +8,15 @@ function PostureAnalysis() {
   const location = useLocation();
   const exerciseName = location.state?.exercise;
 
+  const navigate = useNavigate();
+
+
   const [feedback, setFeedback] = useState([]);
 
   const isInitialized = useRef(false);
+
+  const cameraRef = useRef(null);
+  const streamRef = useRef(null);
 
   function calculateAngle(a, b, c) {
     const radians =
@@ -260,9 +266,174 @@ function PostureAnalysis() {
     return camera;
   }
 
+  function createPushupHandler(videoElement) {
+  const pose = new Pose({
+    locateFile: (file) =>
+      `https://cdn.jsdelivr.net/npm/@mediapipe/pose/${file}`,
+  });
+
+  pose.setOptions({
+    modelComplexity: 1,
+    smoothLandmarks: true,
+    minDetectionConfidence: 0.6,
+    minTrackingConfidence: 0.6,
+  });
+
+  let counter = 0;
+  let stage = "UP";
+
+  let started = false; // 🔥 gate control
+  let stableFrames = 0;
+
+  let prevAngle = null;
+  let bottomReached = false;
+  let bottomFrames = 0;
+
+  const START_FRAMES = 10; // stability before starting
+  const MIN_BOTTOM_FRAMES = 3;
+
+  const UP_THRESHOLD = 165;
+  const DOWN_THRESHOLD = 85;
+
+  pose.onResults((results) => {
+    if (!results.poseLandmarks) {
+      setFeedback(["No person detected"]);
+      return;
+    }
+
+    const lm = results.poseLandmarks;
+
+    const side =
+      lm[11].visibility > lm[12].visibility ? "LEFT" : "RIGHT";
+
+    const map = {
+      LEFT: { s: 11, e: 13, w: 15, h: 23, a: 27 },
+      RIGHT: { s: 12, e: 14, w: 16, h: 24, a: 28 },
+    };
+
+    const ids = map[side];
+
+    const shoulder = lm[ids.s];
+    const elbow = lm[ids.e];
+    const wrist = lm[ids.w];
+    const hip = lm[ids.h];
+    const ankle = lm[ids.a];
+
+    const elbowAngle = calculateAngle(shoulder, elbow, wrist);
+    const backAngle = calculateAngle(shoulder, hip, ankle);
+
+    const goodPosture = backAngle > 160 && backAngle < 190;
+
+    let messages = [];
+
+    // ----------------------------------
+    // 🟡 PHASE 1: WAIT FOR GOOD POSTURE
+    // ----------------------------------
+    if (!started) {
+      if (goodPosture) {
+        stableFrames++;
+        messages.push("Hold straight body...");
+      } else {
+        stableFrames = 0;
+        messages.push("Get into pushup position (straight body)");
+      }
+
+      if (stableFrames >= START_FRAMES) {
+        started = true;
+        messages = ["Start pushups ✅"];
+      }
+
+      setFeedback(messages);
+      return;
+    }
+
+    // ----------------------------------
+    // 🔵 PHASE 2: MOVEMENT TRACKING
+    // ----------------------------------
+    if (prevAngle !== null) {
+      if (elbowAngle < prevAngle - 2) {
+        stage = "DOWN";
+      } else if (elbowAngle > prevAngle + 2) {
+        stage = "UP";
+      }
+    }
+
+    prevAngle = elbowAngle;
+
+    // ----------------------------------
+    // 🔽 BOTTOM DETECTION
+    // ----------------------------------
+    if (stage === "DOWN" && elbowAngle < DOWN_THRESHOLD) {
+      bottomFrames++;
+    } else {
+      bottomFrames = 0;
+    }
+
+    if (bottomFrames >= MIN_BOTTOM_FRAMES) {
+      bottomReached = true;
+    }
+
+    // ----------------------------------
+    // 🔢 REP COUNT (STRICT)
+    // ----------------------------------
+    if (
+      stage === "UP" &&
+      elbowAngle > UP_THRESHOLD &&
+      bottomReached &&
+      goodPosture
+    ) {
+      counter++;
+      bottomReached = false;
+      bottomFrames = 0;
+    }
+
+    // ----------------------------------
+    // 🔴 FEEDBACK SYSTEM (MULTIPLE)
+    // ----------------------------------
+
+    if (!goodPosture) {
+      if (backAngle < 160) {
+        messages.push("Keep your back straight");
+      }
+      if (backAngle > 190) {
+        messages.push("Don't raise hips too high");
+      }
+    }
+
+    if (stage === "DOWN" && elbowAngle > 95) {
+      messages.push("Go lower");
+    }
+
+    if (Math.abs(shoulder.x - wrist.x) > 0.15) {
+      messages.push("Keep hands under shoulders");
+    }
+
+    // default
+    if (messages.length === 0) {
+      messages.push("Good form 👍");
+    }
+
+    messages.push(`Reps: ${counter}`);
+
+    setFeedback(messages);
+  });
+
+  const camera = new Camera(videoElement, {
+    onFrame: async () => {
+      await pose.send({ image: videoElement });
+    },
+    width: 640,
+    height: 480,
+  });
+
+  camera.start();
+  return camera;
+}
+
   const exerciseHandlers = {
     "Planks": createPlankHandler,
     "Squats": createSquatHandler
+    "Pushups": createPushupHandler 
   };
 
   useEffect(() => {
@@ -272,31 +443,52 @@ function PostureAnalysis() {
     let camera = null;
 
     async function startCamera() {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: true,
-      });
+  const stream = await navigator.mediaDevices.getUserMedia({
+    video: true,});
 
-      if (!videoRef.current) return;
-      videoRef.current.srcObject = stream;
+   
 
-      const handler = exerciseHandlers[exerciseName];
-      if (handler) {
-        camera = handler(videoRef.current);
-      }
-    }
+  streamRef.current = stream;
 
+  if (!videoRef.current) return;
+  videoRef.current.srcObject = stream;
+
+  const handler = exerciseHandlers[exerciseName];
+  if (handler) {
+    cameraRef.current = handler(videoRef.current);
+  }
+}
     startCamera();
 
     return () => {
-      if (camera) camera.stop();
+      if (cameraRef.current) {
+        cameraRef.current.stop();
+      }
 
-      if (videoRef.current?.srcObject) {
-        const tracks = videoRef.current.srcObject.getTracks();
-        tracks.forEach((track) => track.stop());
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach((track) => track.stop());
       }
     };
   }, [exerciseName]);
 
+
+
+    const handleFinish = () => {
+  // Stop mediapipe camera
+  if (cameraRef.current) {
+    cameraRef.current.stop();
+  }
+
+  // Stop webcam
+  if (streamRef.current) {
+    streamRef.current.getTracks().forEach(track => track.stop());
+  }
+
+  // Navigate back
+  navigate("/exercises");
+};
+
+    
   return (
     <div className="analysis-page">
       <div className="analysis-container">
@@ -361,9 +553,12 @@ function PostureAnalysis() {
         </div>
 
         <div className="button-footer">
-          <button className="reset-btn">Reset</button>
-          <button className="analyze-btn">Analyze</button>
-        </div>
+  <button className="reset-btn">Reset</button>
+  <button className="analyze-btn">Analyze</button>
+  <button className="analyze-btn" onClick={handleFinish}>
+    ✔ Finish Exercise
+  </button>
+</div>
       </div>
     </div>
   );

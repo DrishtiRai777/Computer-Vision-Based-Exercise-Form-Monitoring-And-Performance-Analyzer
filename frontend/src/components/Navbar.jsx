@@ -1,6 +1,20 @@
-import { Link } from "react-router-dom";
+import { Link ,useNavigate} from "react-router-dom";
 
 function Navbar() {
+
+  const navigate = useNavigate();
+
+  // ✅ Check login before going to report
+  const handleReportClick = () => {
+    const isLoggedIn = localStorage.getItem("isLoggedIn");
+
+    if (isLoggedIn) {
+      navigate("/report");
+    } else {
+      alert("Please login first!");
+      navigate("/login");
+    }
+  };
   return (
     <nav className="navbar">
       <div className="logo">
@@ -14,6 +28,10 @@ function Navbar() {
                 Explore Exercises
             </button>
         </Link>
+
+        <button className="btn outline" onClick={handleReportClick}>
+          Posture Report
+        </button>
         <Link to="/auth">
   <button className="btn solid">Sign In/Up</button>
 </Link>

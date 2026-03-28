@@ -482,6 +482,30 @@ body{
 
   cursor:pointer;
 }
+
+/* ========================= */
+/* FINISH BUTTON (BOTTOM RIGHT) */
+/* ========================= */
+
+.button-footer {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+  margin-top: 15px;
+}
+
+.finish-btn {
+  padding: 10px 16px;
+  background-color: #28a745;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.finish-btn:hover {
+  background-color: #218838;
+}
 /* Style for the new navbar logo image */
 .nav-logo-img {
   width: 40px;      /* Adjust this size if you want it bigger or smaller */

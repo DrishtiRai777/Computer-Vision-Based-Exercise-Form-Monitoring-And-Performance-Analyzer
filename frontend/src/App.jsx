@@ -11,8 +11,12 @@ import Exercises from "./pages/Exercises";
 import AuthPage from "./pages/AuthPage";
 import LoginPage from "./pages/LoginPage";
 import PostureAnalysis from "./pages/PostureAnalysis";
+import ReportPage from "./pages/ReportPage";
 
 import Layout from "./Layout";
+
+
+
 
 function Home() {
   return (
@@ -37,6 +41,8 @@ function App() {
           <Route path="/analysis" element={<PostureAnalysis />} />
           <Route path="/auth" element={<AuthPage />} />
           <Route path="/login" element={<LoginPage />} />
+          <Route path="/report" element={<ReportPage />} />
+        
         </Routes>
 
       </Layout>
