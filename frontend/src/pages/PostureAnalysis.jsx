@@ -23,6 +23,173 @@ function PostureAnalysis() {
     return angle;
   }
 
+  function createSquatHandler(videoElement) {
+    const pose = new Pose({
+      locateFile: (file) =>
+        `https://cdn.jsdelivr.net/npm/@mediapipe/pose/${file}`,
+    });
+  
+    pose.setOptions({
+      modelComplexity: 1,
+      smoothLandmarks: true,
+      minDetectionConfidence: 0.5,
+      minTrackingConfidence: 0.5,
+    });
+  
+    let counter = 0;
+    let stage = "UP";
+    let bottomReached = false;
+  
+    let prevKneeAngle = null;
+    let hipStartY = null;
+    let startKneeAngle = null;
+  
+    let bottomFrames = 0;
+    const MIN_BOTTOM_FRAMES = 3;
+  
+    // thresholds
+    const UP_THRESHOLD = 165;
+    const HIP_DROP_REQUIRED = 0.08;
+    const MIN_ANGLE_DROP = 40;
+  
+    pose.onResults((results) => {
+      if (!results.poseLandmarks) {
+        stage = "UP";
+        bottomReached = false;
+        hipStartY = null;
+        startKneeAngle = null;
+        bottomFrames = 0;
+        setFeedback(["No person detected"]);
+        return;
+      }
+  
+      const lm = results.poseLandmarks;
+  
+      const side =
+        lm[11].visibility > lm[12].visibility ? "LEFT" : "RIGHT";
+  
+      const map = {
+        LEFT: { s: 11, h: 23, k: 25, a: 27 },
+        RIGHT: { s: 12, h: 24, k: 26, a: 28 },
+      };
+  
+      const ids = map[side];
+  
+      const shoulder = lm[ids.s];
+      const hip = lm[ids.h];
+      const knee = lm[ids.k];
+      const ankle = lm[ids.a];
+  
+      const kneeAngle = calculateAngle(hip, knee, ankle);
+  
+      const vertical = { x: hip.x, y: hip.y - 0.1 };
+      const backAngle = calculateAngle(shoulder, hip, vertical);
+  
+      if (prevKneeAngle === null) prevKneeAngle = kneeAngle;
+  
+      const delta = kneeAngle - prevKneeAngle;
+      const descending = delta < -2;
+      const ascending = delta > 2;
+  
+      prevKneeAngle = kneeAngle;
+  
+      const hipY = hip.y;
+  
+      if (
+        stage === "UP" &&
+        hipStartY === null &&
+        kneeAngle > 165
+      ) {
+        hipStartY = hipY;
+        startKneeAngle = kneeAngle;
+      }
+  
+      let hipDrop = 0;
+      if (hipStartY !== null) {
+        hipDrop = hipY - hipStartY;
+      }
+  
+      let angleDrop = 0;
+      if (startKneeAngle !== null) {
+        angleDrop = startKneeAngle - kneeAngle;
+      }
+  
+      // all Conditions
+      const correctDepth = kneeAngle < 100;
+      const hipsLowEnough = hipDrop > HIP_DROP_REQUIRED;
+      const backOk = backAngle > 25 && backAngle < 70;
+      const kneesOk = Math.abs(knee.x - ankle.x) < 0.12;
+      const enoughMovement = angleDrop > MIN_ANGLE_DROP;
+  
+      const correctSquat =
+        correctDepth &&
+        hipsLowEnough &&
+        backOk &&
+        kneesOk &&
+        enoughMovement;
+  
+      
+      // Rep counting
+      if (stage === "UP" && kneeAngle < 140) {
+        stage = "DOWN";
+        bottomFrames = 0;
+      }
+  
+      if (stage === "DOWN" && correctSquat) {
+        bottomFrames++;
+      } else {
+        bottomFrames = 0;
+      }
+  
+      if (bottomFrames >= MIN_BOTTOM_FRAMES) {
+        bottomReached = true;
+      }
+  
+      if (
+        stage === "DOWN" &&
+        kneeAngle > UP_THRESHOLD
+      ) {
+        if (bottomReached) {
+          counter++;
+        }
+  
+        stage = "UP";
+        bottomReached = false;
+        hipStartY = null;
+        startKneeAngle = null;
+        bottomFrames = 0;
+      }
+  
+      // Feedback
+      let messages = [];
+  
+      if (stage === "DOWN") {
+        if (!correctDepth) messages.push("Go lower");
+        if (!hipsLowEnough) messages.push("Lower hips");
+        if (!backOk) messages.push("Fix back");
+        if (!kneesOk) messages.push("Knees forward");
+  
+        if (correctSquat) messages.push("Good squat");
+      } else {
+        messages.push("Start squat");
+      }
+  
+      messages.push(`Reps: ${counter}`);
+      setFeedback(messages);
+    });
+  
+    const camera = new Camera(videoElement, {
+      onFrame: async () => {
+        await pose.send({ image: videoElement });
+      },
+      width: 640,
+      height: 480,
+    });
+  
+    camera.start();
+    return camera;
+  }
+
   function createPlankHandler(videoElement) {
     const pose = new Pose({
       locateFile: (file) =>
@@ -95,7 +262,7 @@ function PostureAnalysis() {
 
   const exerciseHandlers = {
     "Planks": createPlankHandler,
-    
+    "Squats": createSquatHandler
   };
 
   useEffect(() => {
