@@ -432,7 +432,7 @@ function PostureAnalysis() {
 
   const exerciseHandlers = {
     "Planks": createPlankHandler,
-    "Squats": createSquatHandler
+    "Squats": createSquatHandler,
     "Pushups": createPushupHandler 
   };
 
