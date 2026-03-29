@@ -75,30 +75,8 @@ body{
   width:800px;
   max-width:100%;
 }
-/* Add this to recreate the green effect */
-.image-glow-wrapper {
-  position: relative;
-  display: inline-block;
-}
 
-.image-glow-wrapper::before {
-  content: "";
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  width: 120%; /* Adjust size of the glow */
-  height: 120%;
-  /* This creates the soft green spray effect */
-  background: radial-gradient(
-    circle, 
-    rgba(47, 93, 80, 0.2) 0%, 
-    rgba(47, 93, 80, 0.1) 40%, 
-    transparent 70%
-  );
-  z-index: -1; /* Puts it behind the person */
-  filter: blur(40px); /* Makes it look like spray/mist */
-}
+
 
 /* Ensure the hero-image container doesn't cut off the glow */
 .hero-image {

@@ -15,6 +15,7 @@ function PostureAnalysis() {
   const [exerciseStarted, setExerciseStarted] = useState(false); // true after countdown
   const [exerciseTime, setExerciseTime] = useState(0); // counts seconds after start
   const [countdown, setCountdown] = useState(5);
+  const [hasStarted, setHasStarted] = useState(false); 
 
   const isInitialized = useRef(false);
 
@@ -439,37 +440,45 @@ function PostureAnalysis() {
     "Pushups": createPushupHandler 
   };
 
+  
   useEffect(() => {
-  if (isInitialized.current) return;
-  isInitialized.current = true;
+  // 🔹 START CAMERA ONLY ONCE
+  if (!isInitialized.current) {
+    isInitialized.current = true;
+
+    navigator.mediaDevices
+      .getUserMedia({ video: true })
+      .then((stream) => {
+        streamRef.current = stream;
+        if (videoRef.current) {
+          videoRef.current.srcObject = stream;
+        }
+      });
+  }
 
   let countdownInterval;
   let exerciseInterval;
 
-  const startCameraAndExercise = async () => {
-    const stream = await navigator.mediaDevices.getUserMedia({ video: true });
-    streamRef.current = stream;
-
-    if (!videoRef.current) return;
-    videoRef.current.srcObject = stream;
-
-    // Start countdown
+  // 🔹 START COUNTDOWN ONLY AFTER BUTTON CLICK
+  if (hasStarted) {
     setCountdown(5);
+
     countdownInterval = setInterval(() => {
-      setCountdown(prev => {
+      setCountdown((prev) => {
         if (prev <= 1) {
           clearInterval(countdownInterval);
-          setExerciseStarted(true); // start exercise
-          
-          // Start MediaPipe handler
+
+          setExerciseStarted(true);
+
+          // Start MediaPipe
           const handler = exerciseHandlers[exerciseName];
           if (handler) {
             cameraRef.current = handler(videoRef.current);
           }
 
-          // Start exercise timer
+          // Start timer
           exerciseInterval = setInterval(() => {
-            setExerciseTime(prev => prev + 1);
+            setExerciseTime((prev) => prev + 1);
           }, 1000);
 
           return 0;
@@ -477,19 +486,13 @@ function PostureAnalysis() {
         return prev - 1;
       });
     }, 1000);
-  };
-
-  startCameraAndExercise();
+  }
 
   return () => {
-    // Stop camera
-    if (cameraRef.current) cameraRef.current.stop();
-    if (streamRef.current) streamRef.current.getTracks().forEach(t => t.stop());
-    // Clear intervals
     clearInterval(countdownInterval);
     clearInterval(exerciseInterval);
   };
-}, [exerciseName]);
+}, [hasStarted, exerciseName]);
 
 
     const handleFinish = () => {
@@ -507,7 +510,24 @@ function PostureAnalysis() {
   navigate("/exercises");
 };
 
-    
+const overlayStyle = {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    width: "100%",
+    height: "100%",
+    backgroundColor: "rgba(0,0,0,0.3)",
+    display: "flex",
+    flexDirection: "column",
+    alignItems: "center",
+    justifyContent: "center",
+    color: "white",
+    fontSize: "36px",
+    fontWeight: "700",
+    textAlign: "center",
+    zIndex: 10,
+    borderRadius: "10px",
+  }; 
   return (
   <div className="analysis-page">
     <div className="analysis-container">
@@ -542,8 +562,36 @@ function PostureAnalysis() {
     }}
   />
 
-  {/* Countdown Overlay (before exercise starts) */}
-  {!exerciseStarted && countdown > 0 && (
+  {/* BEFORE START */}
+  {!hasStarted && (
+    <div
+      style={{
+        position: "absolute",
+        top: 0,
+        left: 0,
+        width: "100%",
+        height: "100%",
+        backgroundColor: "rgba(0,0,0,0.3)",
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        justifyContent: "center",
+        color: "white",
+        fontSize: "36px",
+        fontWeight: "700",
+        textAlign: "center",
+        zIndex: 10,
+        borderRadius: "10px",
+      }}
+    >
+      <p style={{ fontSize: "28px" }}>
+        Click Start to begin
+      </p>
+    </div>
+  )}
+
+  {/* COUNTDOWN */}
+  {hasStarted && !exerciseStarted && countdown > 0 && (
     <div
       style={{
         position: "absolute",
@@ -571,7 +619,7 @@ function PostureAnalysis() {
     </div>
   )}
 
-  {/* Exercise Timer (visible during exercise) */}
+  {/* EXERCISE TIMER */}
   {exerciseStarted && (
     <div
       style={{
@@ -652,10 +700,18 @@ function PostureAnalysis() {
       {/* BUTTON FOOTER */}
       <div className="button-footer">
         <button className="reset-btn">Reset</button>
+
+        <button
+          className="analyze-btn"
+          onClick={() => setHasStarted(true)}
+          >
+            ▶ Start
+        </button>
         <button className="analyze-btn">Analyze</button>
         <button className="analyze-btn" onClick={handleFinish}>
           ✔ Finish Exercise
         </button>
+    
       </div>
     </div>
   </div>
