@@ -1,6 +1,8 @@
 import React, { useState } from "react";
 import "./AuthPage.css";
 import { useNavigate } from "react-router-dom";
+import { GoogleLogin } from "@react-oauth/google";
+import { loginWithGoogle } from "../utils/auth";
 
 function LoginPage() {
   const navigate = useNavigate();
@@ -16,12 +18,22 @@ function LoginPage() {
       return;
     }
 
-    // ✅ Fake login success
-    localStorage.setItem("isLoggedIn", "true");
-
-    alert("Login successful!");
-    navigate("/"); // go to home
+    alert("Login successful! (UI only)");
+    navigate("/");
   };
+
+  const handleGoogleSuccess = async (credentialResponse) => {
+  try {
+    await loginWithGoogle(credentialResponse.credential);
+
+    alert("Google login successful!");
+    navigate("/");
+
+  } catch (err) {
+    console.error(err);
+    alert("Google login failed");
+  }
+ };
 
   return (
     <div className="auth-wrapper">
@@ -49,7 +61,7 @@ function LoginPage() {
             />
 
             <input 
-              type="password" 
+              type="password"
               placeholder="Password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
@@ -60,6 +72,15 @@ function LoginPage() {
             </button>
 
           </form>
+
+          <div className="divider">OR</div>
+
+          <div style={{ display: "flex", justifyContent: "center" }}>
+            <GoogleLogin
+              onSuccess={handleGoogleSuccess}
+              onError={() => console.log("Google Login Failed")}
+            />
+          </div>
 
         </div>
 
