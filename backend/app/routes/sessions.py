@@ -5,12 +5,14 @@ from app.models.session import Session as SessionModel
 from sqlalchemy.future import select
 from app.services.llm_service import generate_overall_feedback  # your LLM function
 from sqlalchemy.ext.asyncio import AsyncSession
+from app.dependencies.auth import get_current_user
+from app.models.user import User
 
 router = APIRouter(prefix="/sessions", tags=["sessions"])
 
 #input (request type) 
 @router.post("/")
-async def create_single_summary_session(request: Request, db: DbSession = Depends(get_db)):
+async def create_single_summary_session(request: Request, db: DbSession = Depends(get_db), current_user: User = Depends(get_current_user)):
     """
     Receive a list of session inputs, generate combined feedback using LLM,
     and store a single session in the database summarizing all.

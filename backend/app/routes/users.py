@@ -8,6 +8,8 @@ from app.services.auth_service import authenticate_google_user
 from app.models.user import User
 from app.models.session import Session as SessionModel
 from app.services.llm_service import generate_overall_feedback_from_sessions
+from app.services.auth_utils import create_access_token
+from app.dependencies.auth import get_current_user
 
 router = APIRouter(prefix="/users", tags=["users"])
 
@@ -19,12 +21,13 @@ class GoogleAuthRequest(BaseModel):
 @router.post("/auth/google")
 async def google_auth(data: GoogleAuthRequest, db: AsyncSession = Depends(get_db)):
     user = await authenticate_google_user(data.token, db)
+    token = create_access_token({
+        "user_id": user.user_id
+    })
+
     return {
-        "user_id": user.user_id,
-        "google_id": user.google_id,
-        "email": user.email,
-        "name": user.name,
-        "created_at": user.created_at
+        "access_token": token,
+        "token_type": "bearer"
     }
 
 # Get all the users
@@ -45,8 +48,8 @@ async def get_all_users(db: AsyncSession = Depends(get_db)):
 
 # Generate overall-feedback for user
 # Fetch all sessions for the user, generate overall feedback using LLM, and update the existing user row with the new overall feedback.
-@router.post("/{user_id}/overall-feedback")
-async def update_user_overall_feedback(user_id: int, db: AsyncSession = Depends(get_db)):
+@router.post("/overall-feedback")
+async def update_user_overall_feedback(user_id: int, db: AsyncSession = Depends(get_db), current_user: User = Depends(get_current_user)):
     # Fetch all sessions
     result = await db.execute(select(SessionModel).where(SessionModel.user_id == user_id))
     sessions = result.scalars().all()
