@@ -6,20 +6,35 @@ load_dotenv()
 
 client = Groq(api_key=os.getenv("GROQ_API_KEY"))
 
-
-def generate_overall_feedback(feedback):
-
-    # feedback is a list of FeedbackItem objects
-    messages = [f.message for f in feedback]
-
-    combined = " ".join(messages)
+def generate_overall_feedback(exercise_name, exercise_map_start,exercise_map_mid,exercise_map_end):
 
     prompt = f"""
-    These are posture correction messages during a workout:
+    You are a professional fitness coach analyzing a user's exercise performance.
 
-    {combined}
+        Exercise: {exercise_name}
 
-    Generate short constructive feedback for the user like a fitness coach.
+        You are given posture correction feedback with frequency counts:
+        - Start phase: {exercise_map_start}
+        - Mid phase: {exercise_map_mid}
+        - End phase: {exercise_map_end}
+
+        Instructions:
+        1. Identify the most frequent mistakes in the start phase.
+        2. Compare how those mistakes changed in mid and end phases.
+        3. Highlight improvement or lack of improvement.
+        4. Mention only the most important 1–2 posture issues.
+        5. Give short, actionable advice for improvement.
+
+        Output style:
+        - 3–5 sentences maximum
+        - Supportive and constructive tone
+        - Sound like a real gym coach
+        - Avoid generic advice
+
+        Example tone:
+        "You started with inconsistent back posture, but improved stability by the end. Keep focusing on core engagement to fully correct this."
+
+        Now generate the feedback.
     """
 
     completion = client.chat.completions.create(
@@ -29,7 +44,7 @@ def generate_overall_feedback(feedback):
             {"role": "user", "content": prompt}
         ],
         temperature=0.7,
-        max_completion_tokens=300
+        max_completion_tokens=150
     )
 
     return completion.choices[0].message.content
