@@ -8,6 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 router = APIRouter(prefix="/sessions", tags=["sessions"])
 
+#input (request type) 
 @router.post("/")
 async def create_single_summary_session(request: Request, db: DbSession = Depends(get_db)):
     """
