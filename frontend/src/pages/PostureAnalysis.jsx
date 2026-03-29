@@ -510,6 +510,39 @@ function PostureAnalysis() {
   navigate("/exercises");
 };
 
+const handleReset = () => {
+  // 🔴 Stop MediaPipe camera
+  if (cameraRef.current) {
+    cameraRef.current.stop();
+    cameraRef.current = null;
+  }
+
+  // 🔴 Stop webcam stream
+  if (streamRef.current) {
+    streamRef.current.getTracks().forEach((track) => track.stop());
+    streamRef.current = null;
+  }
+
+  isInitialized.current=false;
+
+  // 🔄 Reset states
+  setHasStarted(false);
+  setExerciseStarted(false);
+  setExerciseTime(0);
+  setCountdown(5);
+  setFeedback([]);
+
+  // 🔁 Restart camera preview only (no mediapipe)
+  navigator.mediaDevices
+    .getUserMedia({ video: true })
+    .then((stream) => {
+      streamRef.current = stream;
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+      }
+    });
+};
+
 const overlayStyle = {
     position: "absolute",
     top: 0,
@@ -699,7 +732,7 @@ const overlayStyle = {
 
       {/* BUTTON FOOTER */}
       <div className="button-footer">
-        <button className="reset-btn">Reset</button>
+        <button className="reset-btn" onClick={handleReset}>Reset</button>
 
         <button
           className="analyze-btn"
