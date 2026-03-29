@@ -18,4 +18,6 @@ class Session(Base):
 
     session_feedback = Column(Text)
 
+    created_at = Column(DateTime, server_default=func.now(), nullable=False)
+    
     reps = Column(Integer)
