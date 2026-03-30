@@ -1,7 +1,8 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
+import logging
 
 from app.database import get_db
 from app.services.auth_service import authenticate_google_user
@@ -13,22 +14,24 @@ from app.dependencies.auth import get_current_user
 
 router = APIRouter(prefix="/users", tags=["users"])
 
+logging.basicConfig(level=logging.INFO)
 
 class GoogleAuthRequest(BaseModel):
     token: str
 
-# Google Auth
 @router.post("/auth/google")
-async def google_auth(data: GoogleAuthRequest, db: AsyncSession = Depends(get_db)):
-    user = await authenticate_google_user(data.token, db)
-    token = create_access_token({
-        "user_id": user.user_id
-    })
+async def google_auth(data: GoogleAuthRequest, request: Request, db: AsyncSession = Depends(get_db)):
+    logging.info(f"Incoming request from origin: {request.headers.get('origin')}")
+    logging.info(f"Received token: {data.token}")
 
-    return {
-        "access_token": token,
-        "token_type": "bearer"
-    }
+    try:
+        user = await authenticate_google_user(data.token, db)
+    except Exception as e:
+        logging.exception("Google auth failed")
+        raise HTTPException(status_code=500, detail=str(e))
+
+    access_token = create_access_token({"user_id": user.user_id})
+    return {"access_token": access_token, "token_type": "bearer"}
 
 # Get all the users
 @router.get("/")
