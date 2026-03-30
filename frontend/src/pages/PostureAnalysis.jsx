@@ -538,6 +538,7 @@ function PostureAnalysis() {
         feedback: getFeedbackMap(feedbackHistoryRef.current),
         reps: repsCount,
         total_time: exerciseTime,
+        exercise: exerciseName,
       });
 
       const finalSnapshot = {
