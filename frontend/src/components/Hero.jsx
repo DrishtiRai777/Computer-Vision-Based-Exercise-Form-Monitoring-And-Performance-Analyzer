@@ -31,7 +31,7 @@ function Hero() {
       
 <div className="hero-image">
     <img
-      src="/posture.png"
+      src="/nposture.png"
       alt="Exercise Pose"
       className="hero-img float"
     />
