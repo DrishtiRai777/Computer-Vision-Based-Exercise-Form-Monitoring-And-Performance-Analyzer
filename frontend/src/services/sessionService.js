@@ -1,7 +1,7 @@
 export async function sendSessionSnapshot(snapshot) {
   const token = localStorage.getItem("token");
   try {
-    const res = await fetch("http://localhost:8000/sessions", {
+    const res = await fetch("http://localhost:8000/sessions/", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",

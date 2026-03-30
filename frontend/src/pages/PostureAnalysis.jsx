@@ -2,8 +2,12 @@ import { useEffect, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { Pose } from "@mediapipe/pose";
 import { Camera } from "@mediapipe/camera_utils";
+import { sendSessionSnapshot } from "../services/sessionService";
+import { getFeedbackMap } from "../utils/feedback";
 
 function PostureAnalysis() {
+  const feedbackHistoryRef = useRef([]);
+  const [repsCount, setReps] = useState(0);
   const videoRef = useRef(null);
   const location = useLocation();
   const exerciseName = location.state?.exercise;
@@ -21,6 +25,27 @@ function PostureAnalysis() {
 
   const cameraRef = useRef(null);
   const streamRef = useRef(null);
+
+  useEffect(() => {
+  let interval;
+
+  if (exerciseStarted) {
+    interval = setInterval(() => {
+      const snapshot = {
+        feedback: getFeedbackMap(feedbackHistoryRef.current),
+      };
+      console.log("5 MIN SNAPSHOT", {
+        feedback: getFeedbackMap(feedbackHistoryRef.current),
+      });
+
+      sendSessionSnapshot(snapshot);
+
+      // reset feedback
+      feedbackHistoryRef.current = [];
+    },  5 * 60 * 1000); 
+  }
+  return () => clearInterval(interval);
+}, [exerciseStarted]);
 
   function calculateAngle(a, b, c) {
     const radians =
@@ -186,6 +211,11 @@ function PostureAnalysis() {
   
       messages.push(`Reps: ${counter}`);
       setFeedback(messages);
+      //aggregating feedback
+      const filtered = messages.filter(m => !m.startsWith("Reps"));
+      feedbackHistoryRef.current.push(...filtered);
+
+      setReps(counter);
     });
   
     const camera = new Camera(videoElement, {
@@ -256,6 +286,9 @@ function PostureAnalysis() {
         newFeedback.push("Keep neck neutral.");
 
       setFeedback(newFeedback);
+
+      //aggregating feedback
+      feedbackHistoryRef.current.push(...newFeedback);
     });
 
     const camera = new Camera(videoElement, {
@@ -420,6 +453,11 @@ function PostureAnalysis() {
     messages.push(`Reps: ${counter}`);
 
     setFeedback(messages);
+    
+    // aggregating feedback 
+    const filtered = messages.filter(m => !m.startsWith("Reps"));
+    feedbackHistoryRef.current.push(...filtered);
+    setReps(counter);
   });
 
   const camera = new Camera(videoElement, {
@@ -495,7 +533,22 @@ function PostureAnalysis() {
 }, [hasStarted, exerciseName]);
 
 
-    const handleFinish = () => {
+    const handleFinish = async () => {
+      console.log("FINAL SNAPSHOT", {
+        feedback: getFeedbackMap(feedbackHistoryRef.current),
+        reps: repsCount,
+        total_time: exerciseTime,
+      });
+
+      const finalSnapshot = {
+        feedback: getFeedbackMap(feedbackHistoryRef.current),
+        reps: repsCount,
+        total_time: exerciseTime,
+      };
+
+      await sendSessionSnapshot(finalSnapshot);
+      console.log("Sent final data")
+      feedbackHistoryRef.current = [];
   // Stop mediapipe camera
   if (cameraRef.current) {
     cameraRef.current.stop();
@@ -511,6 +564,8 @@ function PostureAnalysis() {
 };
 
 const handleReset = () => {
+  feedbackHistoryRef.current = [];
+  setReps(0);
   // 🔴 Stop MediaPipe camera
   if (cameraRef.current) {
     cameraRef.current.stop();
