@@ -6,6 +6,7 @@ import { loginWithGoogle } from "../utils/auth";
 
 
 function AuthPage() {
+  const navigate = useNavigate();
   const [formData, setFormData] = useState({
   username: "",
   email: "",
