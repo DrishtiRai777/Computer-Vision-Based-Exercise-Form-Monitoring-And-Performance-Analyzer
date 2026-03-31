@@ -10,7 +10,6 @@ from app.dependencies.auth import get_current_user
 from app.services.llm_service import generate_overall_feedback
 
 router = APIRouter(prefix="/sessions", tags=["sessions"])
-user_maps = {} 
 
 @router.post("/")
 async def create_session(
@@ -18,43 +17,46 @@ async def create_session(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    data = await request.json()
+    data_list = await request.json()
+    print("Received Payload")
+    print(data_list)
 
-    feedback_map = data.get("feedback", {})
-    exercise_name = data.get("exercise_name")
+    if not isinstance(data_list, list):
+        raise HTTPException(status_code=400, detail="Expected list")
+
     user_id = current_user.user_id
 
-    # Initialize 
-    if user_id not in user_maps:
-        user_maps[user_id] = []
+    feedback_maps = []
+    final_snapshot = None
 
-    # Store only non-empty maps
-    if feedback_map:
-        user_maps[user_id].append(feedback_map)
+    # Separate maps + final snapshot
+    for snap in data_list:
+        if "feedback" in snap and snap["feedback"]:
+            feedback_maps.append(snap["feedback"])
 
-    # Not final call - just store maps
-    if not exercise_name:
-        return {"status": "map stored"}
+        if "exercise" in snap:
+            final_snapshot = snap
 
-    # final call
-    reps = data.get("reps", 0)
-    total_time = data.get("total_time", 0)
+    # Not final snapshot - store
+    if not final_snapshot:
+        return {"status": "maps stored"}
 
-    print("FINAL CALL TRIGGERED")
+    print("FINAL SNAPSHOT DETECTED")
 
-    
-    maps = user_maps.get(user_id, [])
+    exercise_name = final_snapshot.get("exercise")
+    reps = final_snapshot.get("reps", 0)
+    total_time = final_snapshot.get("total_time", 0)
 
-    def map_to_text(map_obj):
-        if not map_obj:
-            return ""
-        return ", ".join(f"{k} - {v}" for k, v in map_obj.items())
+    # Convert maps to strings
+    def map_to_text(m):
+        return ", ".join(f"{k} - {v}" for k, v in m.items())
 
-    map1_str = map_to_text(maps[0]) if len(maps) > 0 else ""
-    map2_str = map_to_text(maps[1]) if len(maps) > 1 else ""
-    map3_str = map_to_text(maps[2]) if len(maps) > 2 else ""
+    map1 = map_to_text(feedback_maps[0]) if len(feedback_maps) > 0 else ""
+    map2 = map_to_text(feedback_maps[1]) if len(feedback_maps) > 1 else ""
+    map3 = map_to_text(feedback_maps[2]) if len(feedback_maps) > 2 else ""
 
-    # Fetch exercise from DB
+
+    # Fetch exercise
     result = await db.execute(
         select(Exercise).where(Exercise.exercise_name == exercise_name)
     )
@@ -63,34 +65,23 @@ async def create_session(
     if not exercise:
         raise HTTPException(status_code=404, detail="Exercise not found")
 
-    exercise_id = getattr(exercise, "exercise_id", None)
-    if exercise_id is None:
-        raise HTTPException(status_code=400, detail="Invalid exercise_id")
+    exercise_id = exercise.exercise_id
 
-    print("LLM inputs:", map1_str, map2_str, map3_str)
-    # Generate feedback using LLM
+    # LLM
     try:
         feedback_text = generate_overall_feedback(
             exercise_name=exercise_name,
-            exercise_map_start=map1_str,
-            exercise_map_mid=map2_str,
-            exercise_map_end=map3_str
+            exercise_map_start=map1,
+            exercise_map_mid=map2,
+            exercise_map_end=map3
         )
-        print("FEEDBACK RETURNED FROM LLM:", repr(feedback_text))
+        print("LLM OUTPUT:", feedback_text)
     except Exception as e:
         print("LLM ERROR:", e)
         raise HTTPException(status_code=500, detail="LLM failed")
 
-
     # Save to DB
     try:
-        print("=== Preparing to save session ===")
-        print("user_id:", user_id, type(user_id))
-        print("exercise_id:", exercise_id, type(exercise_id))
-        print("session_time:", total_time, type(total_time))
-        print("session_feedback:", feedback_text, type(feedback_text))
-        print("reps:", reps, type(reps))
-
         session = Session(
             user_id=user_id,
             exercise_id=exercise_id,
@@ -103,14 +94,13 @@ async def create_session(
         await db.commit()
         await db.refresh(session)
 
+        print("SESSION SAVED")
+
     except Exception as e:
         import traceback
         traceback.print_exc()
         await db.rollback()
         raise HTTPException(status_code=500, detail=str(e))
-
-    # clear
-    user_maps[user_id] = []
 
     return {
         "message": "Session saved",

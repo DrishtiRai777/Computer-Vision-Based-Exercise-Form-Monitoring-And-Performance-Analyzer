@@ -44,11 +44,10 @@ def generate_overall_feedback(exercise_name, exercise_map_start,exercise_map_mid
             {"role": "user", "content": prompt}
         ],
         temperature=0.7,
-        max_completion_tokens=150
+        max_completion_tokens=8192
     )
 
     return completion.choices[0].message.content
-
 
 
 def generate_overall_feedback_from_sessions(feedback_list):
