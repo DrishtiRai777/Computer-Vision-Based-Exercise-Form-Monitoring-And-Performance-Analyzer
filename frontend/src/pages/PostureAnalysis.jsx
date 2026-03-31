@@ -534,17 +534,18 @@ function PostureAnalysis() {
 
 
     const handleFinish = async () => {
-      console.log("FINAL SNAPSHOT", {
-        feedback: getFeedbackMap(feedbackHistoryRef.current),
-        reps: repsCount,
-        total_time: exerciseTime,
-        exercise: exerciseName,
-      });
+      // console.log("FINAL SNAPSHOT", {
+      //   feedback: getFeedbackMap(feedbackHistoryRef.current),
+      //   reps: repsCount,
+      //   total_time: exerciseTime,
+      //   exercise: exerciseName,
+      // });
 
       const finalSnapshot = {
         feedback: getFeedbackMap(feedbackHistoryRef.current),
         reps: repsCount,
         total_time: exerciseTime,
+        exercise: exerciseName,
       };
 
       await sendSessionSnapshot(finalSnapshot);
