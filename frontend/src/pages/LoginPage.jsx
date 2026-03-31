@@ -11,23 +11,27 @@ function LoginPage() {
   const [password, setPassword] = useState("");
 
   const handleLogin = (e) => {
-    e.preventDefault();
+  e.preventDefault();
 
-    if (!email || !password) {
-      alert("Please fill all fields");
-      return;
-    }
+  if (!email || !password) {
+    alert("Please fill all fields");
+    return;
+  }
 
-    alert("Login successful! (UI only)");
-    navigate("/");
-  };
+  // ✅ SAVE LOGIN STATE
+  localStorage.setItem("isLoggedIn", "true");
+
+  alert("Login successful!");
+  navigate("/");
+};
 
   const handleGoogleSuccess = async (credentialResponse) => {
   try {
-    await loginWithGoogle(credentialResponse.credential);
+   await loginWithGoogle(credentialResponse.credential);
 
-    alert("Google login successful!");
-    navigate("/");
+   localStorage.setItem("isLoggedIn", "true"); // ✅ ADD THIS
+
+   navigate("/");
 
   } catch (err) {
     console.error(err);

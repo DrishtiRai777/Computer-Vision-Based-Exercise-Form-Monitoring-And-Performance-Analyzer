@@ -48,14 +48,18 @@ function AuthPage() {
     }
 
     setError("");
+    localStorage.setItem("isLoggedIn", "true");
+
     alert("Signup successful!");
+    navigate("/");
   };
 
   const handleGoogleSuccess = async (credentialResponse) => {
   try {
     await loginWithGoogle(credentialResponse.credential);
 
-    alert("Google signup successful!");
+    localStorage.setItem("isLoggedIn", "true");
+
     navigate("/");
 
   } catch (err) {

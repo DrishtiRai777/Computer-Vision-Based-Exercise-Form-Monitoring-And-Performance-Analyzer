@@ -11,15 +11,18 @@ function PostureAnalysis() {
   const videoRef = useRef(null);
   const location = useLocation();
   const exerciseName = location.state?.exercise;
+ 
 
   const navigate = useNavigate();
 
-
+  
   const [feedback, setFeedback] = useState([]);
   const [exerciseStarted, setExerciseStarted] = useState(false); // true after countdown
   const [exerciseTime, setExerciseTime] = useState(0); // counts seconds after start
   const [countdown, setCountdown] = useState(5);
   const [hasStarted, setHasStarted] = useState(false); 
+  const [isFinished, setIsFinished] = useState(false);
+
 
   const isInitialized = useRef(false);
 
@@ -534,69 +537,25 @@ function PostureAnalysis() {
 
 
     const handleFinish = async () => {
-      console.log("FINAL SNAPSHOT", {
-        feedback: getFeedbackMap(feedbackHistoryRef.current),
-        reps: repsCount,
-        total_time: exerciseTime,
-        exercise: exerciseName,
-      });
+  const finalSnapshot = {
+    feedback: getFeedbackMap(feedbackHistoryRef.current),
+    reps: repsCount,
+    total_time: exerciseTime,
+  };
 
-      const finalSnapshot = {
-        feedback: getFeedbackMap(feedbackHistoryRef.current),
-        reps: repsCount,
-        total_time: exerciseTime,
-      };
+  await sendSessionSnapshot(finalSnapshot);
 
-      await sendSessionSnapshot(finalSnapshot);
-      console.log("Sent final data")
-      feedbackHistoryRef.current = [];
-  // Stop mediapipe camera
-  if (cameraRef.current) {
-    cameraRef.current.stop();
-  }
-
-  // Stop webcam
-  if (streamRef.current) {
-    streamRef.current.getTracks().forEach(track => track.stop());
-  }
-
-  // Navigate back
-  navigate("/exercises");
-};
-
-const handleReset = () => {
-  feedbackHistoryRef.current = [];
-  setReps(0);
-  // 🔴 Stop MediaPipe camera
-  if (cameraRef.current) {
-    cameraRef.current.stop();
-    cameraRef.current = null;
-  }
-
-  // 🔴 Stop webcam stream
-  if (streamRef.current) {
-    streamRef.current.getTracks().forEach((track) => track.stop());
-    streamRef.current = null;
-  }
-
-  isInitialized.current=false;
-
-  // 🔄 Reset states
-  setHasStarted(false);
+  // ✅ stop timer only
   setExerciseStarted(false);
-  setExerciseTime(0);
-  setCountdown(5);
-  setFeedback([]);
 
-  // 🔁 Restart camera preview only (no mediapipe)
-  navigator.mediaDevices
-    .getUserMedia({ video: true })
-    .then((stream) => {
-      streamRef.current = stream;
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
-      }
-    });
+  // ✅ allow analyze
+  setIsFinished(true);
+
+  // ❌ DO NOT STOP CAMERA
+  // cameraRef.current.stop();
+
+  // ✅ reset UI
+  setHasStarted(false);
 };
 
 const overlayStyle = {
@@ -618,192 +577,218 @@ const overlayStyle = {
     borderRadius: "10px",
   }; 
   return (
-  <div className="analysis-page">
-    <div className="analysis-container">
-      <div
-        style={{
-          display: "flex",
-          gap: "20px",
-          height: "100%",
-          width: "100%",
-          position: "relative",
-        }}
-      >
-        {/* CAMERA SECTION */}
+    <div className="analysis-page">
+      <div className="analysis-container">
         <div
-  className="camera-section"
-  style={{
-    flex: 1,
-    overflow: "hidden",
-    position: "relative",
-  }}
->
-  {/* Video Feed */}
-  <video
-    ref={videoRef}
-    autoPlay
-    playsInline
-    className="camera-video"
-    style={{
-      width: "100%",
-      height: "100%",
-      objectFit: "cover",
-    }}
-  />
-
-  {/* BEFORE START */}
-  {!hasStarted && (
-    <div
-      style={{
-        position: "absolute",
-        top: 0,
-        left: 0,
-        width: "100%",
-        height: "100%",
-        backgroundColor: "rgba(0,0,0,0.3)",
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "center",
-        justifyContent: "center",
-        color: "white",
-        fontSize: "36px",
-        fontWeight: "700",
-        textAlign: "center",
-        zIndex: 10,
-        borderRadius: "10px",
-      }}
-    >
-      <p style={{ fontSize: "28px" }}>
-        Click Start to begin
-      </p>
-    </div>
-  )}
-
-  {/* COUNTDOWN */}
-  {hasStarted && !exerciseStarted && countdown > 0 && (
-    <div
-      style={{
-        position: "absolute",
-        top: 0,
-        left: 0,
-        width: "100%",
-        height: "100%",
-        backgroundColor: "rgba(0,0,0,0.3)",
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "center",
-        justifyContent: "center",
-        color: "white",
-        fontSize: "36px",
-        fontWeight: "700",
-        textAlign: "center",
-        zIndex: 10,
-        borderRadius: "10px",
-      }}
-    >
-      <p style={{ marginBottom: "20px", fontSize: "28px" }}>
-        Get ready! Take your position
-      </p>
-      <span>{countdown}</span>
-    </div>
-  )}
-
-  {/* EXERCISE TIMER */}
-  {exerciseStarted && (
-    <div
-      style={{
-        position: "absolute",
-        bottom: "20px",
-        right: "20px",
-        backgroundColor: "rgba(0,0,0,0.5)",
-        color: "white",
-        padding: "8px 15px",
-        borderRadius: "12px",
-        fontWeight: "600",
-        fontSize: "16px",
-        zIndex: 10,
-      }}
-    >
-      {Math.floor(exerciseTime / 60)
-        .toString()
-        .padStart(2, "0")}
-      :
-      {(exerciseTime % 60).toString().padStart(2, "0")}
-    </div>
-  )}
-</div>
-
-        {/* FEEDBACK PANEL */}
-        <div
-          className="feedback-panel"
           style={{
-            flex: "0 0 280px",
-            backgroundColor: "#f5f5f5",
-            padding: "20px",
-            borderRadius: "10px",
-            overflowY: "auto",
             display: "flex",
-            flexDirection: "column",
-            gap: "15px",
+            gap: "20px",
+            height: "100%",
+            width: "100%",
+            position: "relative",
           }}
         >
-          <div>
-            <h3
+          {/* CAMERA SECTION */}
+          <div
+            className="camera-section"
+            style={{
+              flex: 1,
+              overflow: "hidden",
+              position: "relative",
+            }}
+          >
+            {/* Video Feed */}
+            <video
+              ref={videoRef}
+              autoPlay
+              playsInline
+              className="camera-video"
               style={{
-                margin: "0 0 10px 0",
-                fontSize: "16px",
-                fontWeight: "600",
+                width: "100%",
+                height: "100%",
+                objectFit: "cover",
               }}
-            >
-              Feedback
-            </h3>
+            />
 
-            {!exerciseStarted ? (
-              <p style={{ margin: 0, color: "#666", fontSize: "14px" }}>
-                Waiting for exercise to start...
-              </p>
-            ) : feedback.length === 0 ? (
-              <p style={{ margin: 0, color: "#666", fontSize: "14px" }}>
-                No issues detected
-              </p>
-            ) : (
-              <ul style={{ margin: 0, paddingLeft: "20px" }}>
-                {feedback.map((item, index) => (
-                  <li
-                    key={index}
-                    style={{
-                      marginBottom: "10px",
-                      fontSize: "14px",
-                      color: "#333",
-                    }}
-                  >
-                    {item}
-                  </li>
-                ))}
-              </ul>
+            {/* BEFORE START */}
+            {!hasStarted && (
+              <div
+                style={{
+                  position: "absolute",
+                  top: 0,
+                  left: 0,
+                  width: "100%",
+                  height: "100%",
+                  backgroundColor: "rgba(0,0,0,0.3)",
+                  display: "flex",
+                  flexDirection: "column",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  color: "white",
+                  fontSize: "36px",
+                  fontWeight: "700",
+                  textAlign: "center",
+                  zIndex: 10,
+                  borderRadius: "10px",
+                }}
+              >
+                <p style={{ fontSize: "28px" }}>Click Start to begin</p>
+              </div>
+            )}
+
+            {/* COUNTDOWN */}
+            {hasStarted && !exerciseStarted && countdown > 0 && (
+              <div
+                style={{
+                  position: "absolute",
+                  top: 0,
+                  left: 0,
+                  width: "100%",
+                  height: "100%",
+                  backgroundColor: "rgba(0,0,0,0.3)",
+                  display: "flex",
+                  flexDirection: "column",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  color: "white",
+                  fontSize: "36px",
+                  fontWeight: "700",
+                  textAlign: "center",
+                  zIndex: 10,
+                  borderRadius: "10px",
+                }}
+              >
+                <p style={{ marginBottom: "20px", fontSize: "28px" }}>
+                  Get ready! Take your position
+                </p>
+                <span>{countdown}</span>
+              </div>
+            )}
+
+            {/* EXERCISE TIMER */}
+            {exerciseStarted && (
+              <div
+                style={{
+                  position: "absolute",
+                  bottom: "20px",
+                  right: "20px",
+                  backgroundColor: "rgba(0,0,0,0.5)",
+                  color: "white",
+                  padding: "8px 15px",
+                  borderRadius: "12px",
+                  fontWeight: "600",
+                  fontSize: "16px",
+                  zIndex: 10,
+                }}
+              >
+                {Math.floor(exerciseTime / 60)
+                  .toString()
+                  .padStart(2, "0")}
+                :{(exerciseTime % 60).toString().padStart(2, "0")}
+              </div>
             )}
           </div>
+
+          {/* FEEDBACK PANEL */}
+          <div
+            className="feedback-panel"
+            style={{
+              flex: "0 0 280px",
+              backgroundColor: "#f5f5f5",
+              padding: "20px",
+              borderRadius: "10px",
+              overflowY: "auto",
+              display: "flex",
+              flexDirection: "column",
+              gap: "15px",
+            }}
+          >
+            <div>
+              <h3
+                style={{
+                  margin: "0 0 10px 0",
+                  fontSize: "16px",
+                  fontWeight: "600",
+                }}
+              >
+                Feedback
+              </h3>
+
+              {!exerciseStarted ? (
+                <p style={{ margin: 0, color: "#666", fontSize: "14px" }}>
+                  Waiting for exercise to start...
+                </p>
+              ) : feedback.length === 0 ? (
+                <p style={{ margin: 0, color: "#666", fontSize: "14px" }}>
+                  No issues detected
+                </p>
+              ) : (
+                <ul style={{ margin: 0, paddingLeft: "20px" }}>
+                  {feedback.map((item, index) => (
+                    <li
+                      key={index}
+                      style={{
+                        marginBottom: "10px",
+                        fontSize: "14px",
+                        color: "#333",
+                      }}
+                    >
+                      {item}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          </div>
         </div>
-      </div>
 
-      {/* BUTTON FOOTER */}
-      <div className="button-footer">
-        <button className="reset-btn" onClick={handleReset}>Reset</button>
+        {/* BUTTON FOOTER */}
+        <div className="button-footer">
+          <button
+            className="reset-btn"
+            onClick={() => {
+              // ✅ stop mediapipe camera
+              if (cameraRef.current) {
+                cameraRef.current.stop();
+              }
 
-        <button
-          className="analyze-btn"
-          onClick={() => setHasStarted(true)}
+              // ✅ stop webcam stream (THIS turns off camera light)
+              if (streamRef.current) {
+                streamRef.current.getTracks().forEach((track) => track.stop());
+              }
+
+              navigate("/exercises");
+            }}
+          >
+            ← Back
+          </button>
+          <button
+            className="analyze-btn"
+            onClick={() => {
+              setHasStarted(true);
+              setIsFinished(false);
+              setExerciseTime(0);
+              setReps(0);
+            }}
           >
             ▶ Start
-        </button>
-        <button className="analyze-btn">Analyze</button>
-        <button className="analyze-btn" onClick={handleFinish}>
-          ✔ Finish Exercise
-        </button>
-    
+          </button>
+          <button
+            className="analyze-btn"
+            disabled={!isFinished}
+            style={{
+              backgroundColor: isFinished ? "green" : "grey",
+              cursor: isFinished ? "pointer" : "not-allowed",
+            }}
+          >
+            Analyze
+          </button>
+          <button className="analyze-btn" onClick={handleFinish}>
+            ✔ Finish Exercise
+          </button>
+        </div>
       </div>
     </div>
-  </div>
-);
+  );
 }
 export default PostureAnalysis;
