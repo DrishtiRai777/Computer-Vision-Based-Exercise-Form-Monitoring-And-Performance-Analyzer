@@ -544,18 +544,22 @@ function PostureAnalysis() {
 }, [hasStarted, exerciseName]);
 
 
-    const handleFinish = async () => {
-  const finalSnapshot = {
-    feedback: getFeedbackMap(feedbackHistoryRef.current),
-    reps: repsCount,
-    total_time: exerciseTime,
-  };
+  const handleFinish = async () => {
+    const finalSnapshot = {
+      feedback: getFeedbackMap(feedbackHistoryRef.current),
+      reps: repsCount,
+      total_time: exerciseTime,
+      exercise: exerciseName,
+    };
 
-  await sendSessionSnapshot(finalSnapshot);
-  setExerciseStarted(false);
-  setIsFinished(true);
-  setHasStarted(false);
-};
+    await sendSessionSnapshot(finalSnapshot);
+    console.log("Sent final data")
+    feedbackHistoryRef.current = [];
+    
+    setExerciseStarted(false);
+    setIsFinished(true);
+    setHasStarted(false);
+  };
 
 const overlayStyle = {
     position: "absolute",
