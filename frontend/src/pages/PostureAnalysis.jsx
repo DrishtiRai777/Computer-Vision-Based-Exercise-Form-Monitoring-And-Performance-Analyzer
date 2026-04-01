@@ -533,7 +533,6 @@ function PostureAnalysis() {
 
 
     const handleFinish = async () => {
-<<<<<<< HEAD
   const finalSnapshot = {
     feedback: getFeedbackMap(feedbackHistoryRef.current),
     reps: repsCount,
