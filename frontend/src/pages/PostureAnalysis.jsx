@@ -510,14 +510,10 @@ function PostureAnalysis() {
           clearInterval(countdownInterval);
 
           setExerciseStarted(true);
-
-          // Start MediaPipe
           const handler = exerciseHandlers[exerciseName];
           if (handler) {
             cameraRef.current = handler(videoRef.current);
           }
-
-          // Start timer
           exerciseInterval = setInterval(() => {
             setExerciseTime((prev) => prev + 1);
           }, 1000);
@@ -545,32 +541,8 @@ function PostureAnalysis() {
   };
 
   await sendSessionSnapshot(finalSnapshot);
-=======
-      // console.log("FINAL SNAPSHOT", {
-      //   feedback: getFeedbackMap(feedbackHistoryRef.current),
-      //   reps: repsCount,
-      //   total_time: exerciseTime,
-      //   exercise: exerciseName,
-      // });
-
-      const finalSnapshot = {
-        feedback: getFeedbackMap(feedbackHistoryRef.current),
-        reps: repsCount,
-        total_time: exerciseTime,
-        exercise: exerciseName,
-      };
->>>>>>> fcc8e92a39f0c6e663fa29f435a3484ca53de259
-
-  // ✅ stop timer only
   setExerciseStarted(false);
-
-  // ✅ allow analyze
   setIsFinished(true);
-
-  // ❌ DO NOT STOP CAMERA
-  // cameraRef.current.stop();
-
-  // ✅ reset UI
   setHasStarted(false);
 };
 
