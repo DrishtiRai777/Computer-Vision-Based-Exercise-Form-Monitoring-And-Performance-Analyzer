@@ -32,11 +32,13 @@ def generate_overall_feedback(exercise_name, exercise_map_start,exercise_map_mid
         - Supportive and constructive tone
         - Sound like a real gym coach
         - Avoid generic advice
+        - Don't add the numbers in the explaination
+        - Keep the language eastily understandable, don't add jargons.
 
         Example tone:
-        "You started with inconsistent back posture, but improved stability by the end. Keep focusing on core engagement to fully correct this."
+        "You started with inconsistent back posture, but improved stability by the end. Make sure you to maintiain your back in the correct position"
 
-        Now generate the feedback.ghllllllllllllllllll
+        Now generate the feedback
     """
 
     completion = client.chat.completions.create(
@@ -46,11 +48,10 @@ def generate_overall_feedback(exercise_name, exercise_map_start,exercise_map_mid
             {"role": "user", "content": prompt}
         ],
         temperature=0.7,
-        stream=True,
-        max_completion_tokens=8192
+        max_tokens=1000
     )
-
-    return completion
+    content = completion.choices[0].message.content
+    return content
 
 
 def generate_overall_feedback_from_sessions(feedback_list):
