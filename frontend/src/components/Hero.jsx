@@ -29,12 +29,14 @@ function Hero() {
       </div>
 
       
-<div className="hero-image">
-    <img
+<div className="hero-image" >
+  <div className="image-container">
+    <img 
       src="/nposture.png"
       alt="Exercise Pose"
       className="hero-img float"
     />
+    </div>
 </div>
     </section>
   );
