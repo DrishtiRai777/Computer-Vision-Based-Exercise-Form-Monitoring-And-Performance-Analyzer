@@ -4,6 +4,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 import logging
 
+from sqlalchemy import delete, select
+from datetime import datetime, timedelta
 from app.database import get_db
 from app.services.auth_service import authenticate_google_user
 from app.models.user import User
@@ -44,42 +46,61 @@ async def get_all_users(db: AsyncSession = Depends(get_db)):
             "google_id": user.google_id,
             "email": user.email,
             "name": user.name,
-            "created_at": user.created_at
+            "created_at": user.created_at,
+            "overall_feedback": user.overall_feedback
         }
         for user in users
     ]
 
-# Generate overall-feedback for user
-# Fetch all sessions for the user, generate overall feedback using LLM, and update the existing user row with the new overall feedback.
+
 @router.post("/overall-feedback")
-async def update_user_overall_feedback(user_id: int, db: AsyncSession = Depends(get_db), current_user: User = Depends(get_current_user)):
-    # Fetch all sessions
-    result = await db.execute(select(SessionModel).where(SessionModel.user_id == user_id))
-    sessions = result.scalars().all()
+async def overall_feedback(
+    db: AsyncSession = Depends(get_db),
+    current_user: dict = Depends(get_current_user),
+):
+    user_id = current_user.user_id
+    if not user_id:
+        raise HTTPException(status_code=401, detail="Invalid token")
 
-    if not sessions:
-        raise HTTPException(status_code=404, detail="No sessions found for this user")
+    try:
+        one_week_ago = datetime.utcnow() - timedelta(weeks=1)
 
-    feedback_list = [s.session_feedback for s in sessions if s.session_feedback]
+        # Deleting old sesssions
+        delete_stmt = delete(SessionModel).where(
+            SessionModel.user_id == user_id,
+            SessionModel.created_at < one_week_ago
+        )
+        result = await db.execute(delete_stmt)
+        await db.commit()
+        logging.info(f"Deleted {result.rowcount} old sessions")
 
-    if not feedback_list:
-        raise HTTPException(status_code=404, detail="No session feedback available for this user")
+        
+        select_stmt = select(SessionModel.session_feedback).where(SessionModel.user_id == user_id)
+        result = await db.execute(select_stmt)
+        feedback_rows = result.scalars().all()
+        feedback_list = [f for f in feedback_rows if f]
+        logging.info(f"Fetched {len(feedback_list)} feedback entries")
 
-    # Feedback using LLM
-    overall_feedback_text = generate_overall_feedback_from_sessions(feedback_list)
+        #LLM
+        if not feedback_list:
+            overall_feedback_result = "No recent sessions to summarize."
+        else:
+            overall_feedback_result = generate_overall_feedback_from_sessions(feedback_list)
 
-    # Fetch the user row
-    result = await db.execute(select(User).where(User.user_id == user_id))
-    user = result.scalars().first()
-    if not user:
-        raise HTTPException(status_code=404, detail="User not found")
+        # Updation in user
+        select_user_stmt = select(User).where(User.user_id == user_id)
+        result = await db.execute(select_user_stmt)
+        user = result.scalars().first()
+        if not user:
+            logging.info("User not found")
+            raise HTTPException(status_code=404, detail="User not found")
 
-    # Update user row
-    user.overall_feedback = overall_feedback_text
-    await db.commit()
-    await db.refresh(user)
+        user.overall_feedback = overall_feedback_result
+        await db.commit()
 
-    return {
-        "user_id": user.user_id,
-        "overall_feedback": user.overall_feedback
-    }
+        return {"overall_feedback": overall_feedback_result}
+
+    except Exception as e:
+        await db.rollback()
+        logging.exception("Unexpected error in overall-feedback")
+        raise HTTPException(status_code=500, detail=str(e))
