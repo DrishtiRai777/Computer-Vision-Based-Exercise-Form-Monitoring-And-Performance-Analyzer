@@ -28,7 +28,19 @@ function PostureAnalysis() {
 
   const cameraRef = useRef(null);
   const streamRef = useRef(null);
-
+  useEffect(() => {
+    return () => {
+      if (cameraRef.current) {
+        cameraRef.current.stop();
+      }
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach((track) => track.stop());
+      }
+      if (videoRef.current) {
+        videoRef.current.srcObject = null;
+      }
+    };
+  }, []);
   useEffect(() => {
   let interval;
 
@@ -734,14 +746,18 @@ const overlayStyle = {
           <button
             className="reset-btn"
             onClick={() => {
-              // ✅ stop mediapipe camera
+             
               if (cameraRef.current) {
                 cameraRef.current.stop();
               }
 
-              // ✅ stop webcam stream (THIS turns off camera light)
+             
               if (streamRef.current) {
                 streamRef.current.getTracks().forEach((track) => track.stop());
+              }
+
+              if (videoRef.current) {
+                videoRef.current.srcObject = null;
               }
 
               navigate("/exercises");
