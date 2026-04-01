@@ -17,6 +17,7 @@ def generate_overall_feedback(exercise_name, exercise_map_start,exercise_map_mid
         - Start phase: {exercise_map_start}
         - Mid phase: {exercise_map_mid}
         - End phase: {exercise_map_end}
+        (it might be a case when enough time hasn't pass, you might not get mid phase or end phase, so give the feedback on the basis of provided maps only)
 
         Instructions:
         1. Identify the most frequent mistakes in the start phase.
@@ -24,6 +25,7 @@ def generate_overall_feedback(exercise_name, exercise_map_start,exercise_map_mid
         3. Highlight improvement or lack of improvement.
         4. Mention only the most important 1–2 posture issues.
         5. Give short, actionable advice for improvement.
+        6. If there are no mid map or end map, make the advice as per the given maps 
 
         Output style:
         - 3–5 sentences maximum
@@ -34,7 +36,7 @@ def generate_overall_feedback(exercise_name, exercise_map_start,exercise_map_mid
         Example tone:
         "You started with inconsistent back posture, but improved stability by the end. Keep focusing on core engagement to fully correct this."
 
-        Now generate the feedback.
+        Now generate the feedback.ghllllllllllllllllll
     """
 
     completion = client.chat.completions.create(
@@ -44,10 +46,11 @@ def generate_overall_feedback(exercise_name, exercise_map_start,exercise_map_mid
             {"role": "user", "content": prompt}
         ],
         temperature=0.7,
+        stream=True,
         max_completion_tokens=8192
     )
 
-    return completion.choices[0].message.content
+    return completion
 
 
 def generate_overall_feedback_from_sessions(feedback_list):
