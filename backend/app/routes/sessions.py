@@ -104,7 +104,10 @@ async def create_session(
 
     return {
         "message": "Session saved",
-        "feedback": feedback_text
+        "exercise": exercise_name,
+        "feedback": feedback_text,
+        "total_time": total_time,
+        "reps": reps
     }
 
 

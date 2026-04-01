@@ -26,17 +26,14 @@ export async function sendSessionSnapshot(snapshot) {
 
 
     const data = await res.json();
-    console.log("Response data:", data);
+    console.log("Backend response:", data); 
 
     if (!res.ok) {
       console.error("Failed request");
-      return;
+      return null;
     }
 
-    console.log("Snapshots sent successfully");
-
-    // Clear
-    feedbackSnapshots.length = 0;
+    return data;
 
   } catch (err) {
     console.error("Fetch error:", err);

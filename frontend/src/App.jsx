@@ -13,6 +13,7 @@ import AuthPage from "./pages/AuthPage";
 import LoginPage from "./pages/LoginPage";
 import PostureAnalysis from "./pages/PostureAnalysis";
 import ReportPage from "./pages/ReportPage";
+import SessionReport from "./pages/SessionReport"
 
 import Layout from "./Layout";
 
@@ -40,6 +41,7 @@ function App() {
             <Route path="/auth" element={<AuthPage />} />
             <Route path="/login" element={<LoginPage />} />
             <Route path="/report" element={<ReportPage />} />
+            <Route path="/sessionReport" element={<SessionReport />} />
           </Routes>
         </Layout>
       </Router>

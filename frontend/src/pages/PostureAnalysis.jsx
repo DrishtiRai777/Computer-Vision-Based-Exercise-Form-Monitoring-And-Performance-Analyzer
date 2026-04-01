@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
+import { data, useLocation, useNavigate } from "react-router-dom";
 import { Pose } from "@mediapipe/pose";
 import { Camera } from "@mediapipe/camera_utils";
 import { sendSessionSnapshot } from "../services/sessionService";
@@ -14,8 +14,7 @@ function PostureAnalysis() {
  
 
   const navigate = useNavigate();
-
-  
+  const [reportData, setReportData] = useState(null);
   const [feedback, setFeedback] = useState([]);
   const [exerciseStarted, setExerciseStarted] = useState(false); // true after countdown
   const [exerciseTime, setExerciseTime] = useState(0); // counts seconds after start
@@ -552,14 +551,23 @@ function PostureAnalysis() {
       exercise: exerciseName,
     };
 
-    await sendSessionSnapshot(finalSnapshot);
-    console.log("Sent final data")
+    const data = await sendSessionSnapshot(finalSnapshot);
     feedbackHistoryRef.current = [];
-    
+    setReportData(data);
+
     setExerciseStarted(false);
     setIsFinished(true);
     setHasStarted(false);
   };
+
+  const handleReport = () => {
+     if (!reportData) {
+      alert("No report available yet");
+      return;
+    }
+
+    navigate("/sessionReport", { state: reportData }); 
+  }
 
 const overlayStyle = {
     position: "absolute",
@@ -780,6 +788,7 @@ const overlayStyle = {
           >
             ▶ Start
           </button>
+
           <button
             className="analyze-btn"
             disabled={!isFinished}
@@ -787,6 +796,7 @@ const overlayStyle = {
               backgroundColor: isFinished ? "green" : "grey",
               cursor: isFinished ? "pointer" : "not-allowed",
             }}
+            onClick={handleReport}
           >
             Analyze
           </button>
