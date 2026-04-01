@@ -5,6 +5,14 @@ import { Camera } from "@mediapipe/camera_utils";
 import { sendSessionSnapshot } from "../services/sessionService";
 import { getFeedbackMap } from "../utils/feedback";
 
+function speak(text) {
+  window.speechSynthesis.cancel(); // stop previous if any
+
+  const utterance = new SpeechSynthesisUtterance(text);
+  utterance.rate = 1;
+  window.speechSynthesis.speak(utterance);
+}
+
 function PostureAnalysis() {
   const feedbackHistoryRef = useRef([]);
   const [repsCount, setReps] = useState(0);
@@ -22,7 +30,7 @@ function PostureAnalysis() {
   const [hasStarted, setHasStarted] = useState(false); 
   const [isFinished, setIsFinished] = useState(false);
 
-
+  const latestFeedbackRef = useRef([]);
   const isInitialized = useRef(false);
 
   const cameraRef = useRef(null);
@@ -60,6 +68,21 @@ function PostureAnalysis() {
   }
   return () => clearInterval(interval);
 }, [exerciseStarted]);
+
+useEffect(() => {
+  if (!exerciseStarted) return;
+
+  const interval = setInterval(() => {
+    const messages = latestFeedbackRef.current;
+
+    if (!messages || messages.length === 0) return;
+
+    speak(messages);
+
+  }, 8000);
+
+  return () => clearInterval(interval);
+}, [exerciseStarted, latestFeedbackRef]);
 
   function calculateAngle(a, b, c) {
     const radians =
@@ -227,6 +250,7 @@ function PostureAnalysis() {
       setFeedback(messages);
       //aggregating feedback
       const filtered = messages.filter(m => !m.startsWith("Reps"));
+      latestFeedbackRef.current = filtered;
       feedbackHistoryRef.current.push(...filtered);
 
       setReps(counter);
@@ -298,8 +322,9 @@ function PostureAnalysis() {
 
       if (neckAngle < 160)
         newFeedback.push("Keep neck neutral.");
-
+      
       setFeedback(newFeedback);
+      latestFeedbackRef.current = newFeedback;
 
       //aggregating feedback
       feedbackHistoryRef.current.push(...newFeedback);
@@ -383,7 +408,7 @@ function PostureAnalysis() {
     if (!started) {
       if (goodPosture) {
         stableFrames++;
-        messages.push("Hold straight body...");
+        messages.push("Hold straight body");
       } else {
         stableFrames = 0;
         messages.push("Get into pushup position (straight body)");
@@ -391,10 +416,11 @@ function PostureAnalysis() {
 
       if (stableFrames >= START_FRAMES) {
         started = true;
-        messages = ["Start pushups ✅"];
+        messages = ["Start pushups"];
       }
 
       setFeedback(messages);
+      latestFeedbackRef.current = messages;
       return;
     }
 
@@ -461,16 +487,16 @@ function PostureAnalysis() {
 
     // default
     if (messages.length === 0) {
-      messages.push("Good form 👍");
+      messages.push("Good form");
     }
 
     messages.push(`Reps: ${counter}`);
 
     setFeedback(messages);
-    
     // aggregating feedback 
     const filtered = messages.filter(m => !m.startsWith("Reps"));
     feedbackHistoryRef.current.push(...filtered);
+    latestFeedbackRef.current = filtered;
     setReps(counter);
   });
 
