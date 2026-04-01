@@ -18,8 +18,6 @@ function LoginPage() {
     return;
   }
 
-  // ✅ SAVE LOGIN STATE
-  localStorage.setItem("isLoggedIn", "true");
 
   alert("Login successful!");
   navigate("/");
@@ -28,8 +26,6 @@ function LoginPage() {
   const handleGoogleSuccess = async (credentialResponse) => {
   try {
    await loginWithGoogle(credentialResponse.credential);
-
-   localStorage.setItem("isLoggedIn", "true"); // ✅ ADD THIS
 
    navigate("/");
 

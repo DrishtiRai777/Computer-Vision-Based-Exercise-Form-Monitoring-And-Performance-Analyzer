@@ -14,17 +14,11 @@ function Exercises() {
   const navigate = useNavigate();
 
 const startExercise = (exerciseName) => {
-  const isLoggedIn = localStorage.getItem("isLoggedIn");
-
-  if (!isLoggedIn) {
-    alert("Please login first to try exercises");
-
-    // redirect to login
+  const token = localStorage.getItem("token");
+  if(!token) {
     navigate("/login");
     return;
   }
-
-  // ✅ if logged in → allow
   navigate("/analysis", { state: { exercise: exerciseName } });
 };
   return (

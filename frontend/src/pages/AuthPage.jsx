@@ -48,7 +48,7 @@ function AuthPage() {
     }
 
     setError("");
-    localStorage.setItem("isLoggedIn", "true");
+    
 
     alert("Signup successful!");
     navigate("/");
@@ -57,11 +57,7 @@ function AuthPage() {
   const handleGoogleSuccess = async (credentialResponse) => {
   try {
     await loginWithGoogle(credentialResponse.credential);
-
-    localStorage.setItem("isLoggedIn", "true");
-
     navigate("/");
-
   } catch (err) {
     console.error(err);
     alert("Google signup failed");
