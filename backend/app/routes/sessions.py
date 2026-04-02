@@ -111,34 +111,35 @@ async def create_session(
     }
 
 
-# All sessions for a user
-@router.get("/user/{user_id}")
+@router.get("/user-session-info")
 async def get_user_sessions(
-    user_id: int,
-    db: AsyncSession = Depends(get_db)
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user)
 ):
-    result = await db.execute(
-        select(Session).where(Session.user_id == user_id)
-    )
-    sessions = result.scalars().all()
 
-    if not sessions:
-        raise HTTPException(
-            status_code=404,
-            detail="No sessions found for this user"
-        )
+    result = await db.execute(
+        select(Session, Exercise.exercise_name)
+        .join(Exercise, Session.exercise_id == Exercise.exercise_id)
+        .where(Session.user_id == current_user.user_id)
+        .order_by(Session.created_at.desc())
+    )
+
+    rows = result.all() 
+
+    sessions = [
+        {
+            "session_id": session.session_id,
+            "exercise_name": exercise_name,
+            "session_time": session.session_time,
+            "reps": session.reps,
+            "session_feedback": session.session_feedback,
+            "created_at": session.created_at.strftime("%A, %Y-%m-%d %H:%M:%S")
+        }
+        for session, exercise_name in rows
+    ]
 
     return {
         "status": "success",
-        "sessions": [
-            {
-                "session_id": s.session_id,
-                "exercise_id": s.exercise_id,
-                "session_time": s.session_time,
-                "reps": s.reps,
-                "session_feedback": s.session_feedback,
-                "created_at": s.created_at
-            }
-            for s in sessions
-        ]
+        "sessions": sessions
     }
