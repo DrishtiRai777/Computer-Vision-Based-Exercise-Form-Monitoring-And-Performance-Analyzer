@@ -327,10 +327,6 @@ body{
 }
 
 
-/* ========================= */
-/* EXERCISE ANALYSIS PAGE */
-/* ========================= */
-
 .analysis-page{
   height:calc(100vh - 80px);
   display:flex;
@@ -390,8 +386,6 @@ body{
   object-fit:cover;
 }
 
-
-/* CANVAS (for pose drawing if used) */
 
 .pose-canvas{
 
@@ -461,9 +455,6 @@ body{
   cursor:pointer;
 }
 
-/* ========================= */
-/* FINISH BUTTON (BOTTOM RIGHT) */
-/* ========================= */
 
 .button-footer {
   display: flex;
@@ -484,16 +475,15 @@ body{
 .finish-btn:hover {
   background-color: #218838;
 }
-/* Style for the new navbar logo image */
+
 .nav-logo-img {
-  width: 40px;      /* Adjust this size if you want it bigger or smaller */
+  width: 40px;     
   height: auto;
   object-fit: contain;
-  /* Optional: add a tiny bit of the green glow to the logo too */
   filter: drop-shadow(0 0 5px rgba(47, 93, 80, 0.3)); 
 }
 
-/* Ensure the logo container stays aligned */
+
 .logo {
   display: flex;
   align-items: center;
@@ -506,7 +496,6 @@ body{
   align-items: center;
 }
 
-/* REALISTIC GREEN GLOW */
 .image-container::before {
   content: "";
   position: absolute;
@@ -525,7 +514,7 @@ body{
   filter: blur(80px);
   z-index: 0;
 
-  /* Adjust position to match your image */
+  
   top: 50%;
   left: 60%;
   transform: translate(-50%, -50%);
@@ -535,4 +524,42 @@ body{
   position: relative;
   z-index: 1;
   max-width: 100%;
+}
+
+
+.user-profile-circle {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  border: 2px solid #2f5d50;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  background-color: transparent;
+  margin-left: 5px; 
+}
+
+.user-profile-circle svg {
+  width: 22px;
+  height: 22px;
+  color: #2f5d50; 
+}
+
+.user-profile-circle:hover {
+  background-color: #2f5d50;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(47, 93, 80, 0.2);
+}
+
+.user-profile-circle:hover svg {
+  color: white; 
+}
+
+
+.nav-buttons {
+  display: flex;
+  align-items: center;
+  gap: 15px;
 }
