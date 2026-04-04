@@ -4,12 +4,12 @@ import { Link, useNavigate, useLocation } from "react-router-dom";
 function Navbar() {
   const navigate = useNavigate();
   const location = useLocation();
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [isLoggedIn, setIsLoggedIn] = useState(!!localStorage.getItem("token"));
 
   useEffect(() => {
-    const loggedIn = localStorage.getItem("isLoggedIn") === "true";
-    setIsLoggedIn(loggedIn);
-  }, [location]);
+  const token = localStorage.getItem("token");
+  setIsLoggedIn(!!token);
+}, [location]);
 
   const handleReportClick = () => {
     if (isLoggedIn) {
@@ -21,12 +21,12 @@ function Navbar() {
   };
 
   const handleLogout = () => {
-    if(window.confirm("Do you want to logout?")) {
-      localStorage.removeItem("isLoggedIn");
-      setIsLoggedIn(false);
-      navigate("/");
-    }
-  };
+  if (window.confirm("Do you want to logout?")) {
+    localStorage.removeItem("token"); 
+    setIsLoggedIn(false);
+    navigate("/");
+  }
+};
 
   return (
     <nav className="navbar">

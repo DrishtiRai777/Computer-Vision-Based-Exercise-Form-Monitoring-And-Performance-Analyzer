@@ -17,15 +17,15 @@ function LoginPage() {
     alert("Please fill all fields");
     return;
   }
-
+  localStorage.setItem("token", "dummy_token");
 
   alert("Login successful!");
   navigate("/");
 };
-
   const handleGoogleSuccess = async (credentialResponse) => {
   try {
    await loginWithGoogle(credentialResponse.credential);
+   localStorage.setItem("token", credentialResponse.credential);
 
    navigate("/");
 

@@ -23,40 +23,41 @@ function AuthPage() {
     });
   };
   const handleSubmit = (e) => {
-    e.preventDefault();
+  e.preventDefault();
 
-    const { username, email, phone, password, confirmPassword } = formData;
+  const { username, email, phone, password, confirmPassword } = formData;
 
-    if (!username || !email || !phone || !password || !confirmPassword) {
-      setError("All fields are required");
-      return;
-    }
+  if (!username || !email || !phone || !password || !confirmPassword) {
+    setError("All fields are required");
+    return;
+  }
 
-    if (!/^[0-9]{10}$/.test(phone)) {
-      setError("Phone number must be 10 digits");
-      return;
-    }
+  if (!/^[0-9]{10}$/.test(phone)) {
+    setError("Phone number must be 10 digits");
+    return;
+  }
 
-    if (password.length < 8) {
-      setError("Password must be at least 8 characters");
-      return;
-    }
+  if (password.length < 8) {
+    setError("Password must be at least 8 characters");
+    return;
+  }
 
-    if (password !== confirmPassword) {
-      setError("Passwords do not match");
-      return;
-    }
+  if (password !== confirmPassword) {
+    setError("Passwords do not match");
+    return;
+  }
+  setError("");
+  localStorage.setItem("token", "dummy_token"); 
 
-    setError("");
-    
-
-    alert("Signup successful!");
-    navigate("/");
-  };
+  alert("Signup successful!");
+  navigate("/");
+};
 
   const handleGoogleSuccess = async (credentialResponse) => {
   try {
     await loginWithGoogle(credentialResponse.credential);
+    localStorage.setItem("token", credentialResponse.credential);
+
     navigate("/");
   } catch (err) {
     console.error(err);
