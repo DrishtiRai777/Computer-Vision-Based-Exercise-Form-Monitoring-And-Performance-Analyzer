@@ -9,7 +9,7 @@ function Exercises() {
     { name: "Planks", img: "/planks.png" },
     { name: "Pushups", img: "/pushups.png" },
     { name: "Squats", img: "/squats.png" },
-    { name: "Glute Bridge", img: "/glute bridge.png" }
+    { name: "Bicep Curls", img: "/glute bridge.png" }
   ];
   const navigate = useNavigate();
 
