@@ -341,6 +341,154 @@ useEffect(() => {
     camera.start();
     return camera;
   }
+  
+  function createBicepCurlHandler(videoElement) {
+  const pose = new Pose({
+    locateFile: (file) =>
+      `https://cdn.jsdelivr.net/npm/@mediapipe/pose/${file}`,
+  });
+
+  pose.setOptions({
+    modelComplexity: 1,
+    smoothLandmarks: true,
+    minDetectionConfidence: 0.6,
+    minTrackingConfidence: 0.6,
+  });
+
+  let counter = 0;
+  let stage = "DOWN";
+
+  let prevAngle = null;
+  let bottomReached = false;
+  let bottomFrames = 0;
+
+  const UP_THRESHOLD = 160;   // arm straight (down position)
+  const DOWN_THRESHOLD = 50;  // curl up position
+  const MIN_BOTTOM_FRAMES = 3;
+
+  pose.onResults((results) => {
+    if (!results.poseLandmarks) {
+      setFeedback(["No person detected"]);
+      return;
+    }
+
+    const lm = results.poseLandmarks;
+
+    // Detect visible side
+    const side =
+      lm[11].visibility > lm[12].visibility ? "LEFT" : "RIGHT";
+
+    const map = {
+      LEFT: { s: 11, e: 13, w: 15 },
+      RIGHT: { s: 12, e: 14, w: 16 },
+    };
+
+    const ids = map[side];
+
+    const shoulder = lm[ids.s];
+    const elbow = lm[ids.e];
+    const wrist = lm[ids.w];
+
+    // 🔑 Core angle
+    const elbowAngle = calculateAngle(shoulder, elbow, wrist);
+
+    let messages = [];
+
+    // -----------------------------
+    // 🔄 Movement detection
+    // -----------------------------
+    if (prevAngle !== null) {
+      if (elbowAngle < prevAngle - 2) {
+        stage = "UP"; // curling up
+      } else if (elbowAngle > prevAngle + 2) {
+        stage = "DOWN"; // lowering
+      }
+    }
+
+    prevAngle = elbowAngle;
+
+    // -----------------------------
+    // 🔽 Bottom detection (fully curled)
+    // -----------------------------
+    if (stage === "UP" && elbowAngle < DOWN_THRESHOLD) {
+      bottomFrames++;
+    } else {
+      bottomFrames = 0;
+    }
+
+    if (bottomFrames >= MIN_BOTTOM_FRAMES) {
+      bottomReached = true;
+    }
+
+    // -----------------------------
+    // 🔢 REP COUNTING
+    // -----------------------------
+    if (
+      stage === "DOWN" &&
+      elbowAngle > UP_THRESHOLD &&
+      bottomReached
+    ) {
+      counter++;
+      bottomReached = false;
+      bottomFrames = 0;
+    }
+
+    // -----------------------------
+    // 🧠 FEEDBACK SYSTEM
+    // -----------------------------
+
+    // Arm extension
+    if (elbowAngle > 170) {
+      messages.push("Fully extend your arm");
+    }
+
+    // Over-curling
+    if (elbowAngle < 40) {
+      messages.push("Don't over curl");
+    }
+
+    // Elbow stability
+    if (Math.abs(shoulder.x - elbow.x) > 0.1) {
+      messages.push("Keep elbow fixed");
+    }
+
+    // Default positive feedback
+    if (messages.length === 0) {
+      messages.push("Good curl");
+    }
+
+    // Add reps
+    messages.push(`Reps: ${counter}`);
+
+    // -----------------------------
+    // 📤 STATE UPDATES
+    // -----------------------------
+    setFeedback(messages);
+
+    const filtered = messages.filter(
+      (m) => !m.startsWith("Reps")
+    );
+
+    latestFeedbackRef.current = filtered;
+    feedbackHistoryRef.current.push(...filtered);
+
+    setReps(counter);
+  });
+
+  // -----------------------------
+  // 📷 CAMERA SETUP
+  // -----------------------------
+  const camera = new Camera(videoElement, {
+    onFrame: async () => {
+      await pose.send({ image: videoElement });
+    },
+    width: 640,
+    height: 480,
+  });
+
+  camera.start();
+  return camera;
+}
 
   function createPushupHandler(videoElement) {
   const pose = new Pose({
@@ -515,7 +663,8 @@ useEffect(() => {
   const exerciseHandlers = {
     "Planks": createPlankHandler,
     "Squats": createSquatHandler,
-    "Pushups": createPushupHandler 
+    "Pushups": createPushupHandler,
+    "Bicep Curls": createBicepCurlHandler
   };
 
   
