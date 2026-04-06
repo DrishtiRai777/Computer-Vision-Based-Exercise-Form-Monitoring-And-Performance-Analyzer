@@ -968,14 +968,22 @@ const overlayStyle = {
             className="analyze-btn"
             disabled={!isFinished}
             style={{
-              backgroundColor: isFinished ? "green" : "grey",
+              backgroundColor: isFinished ? "#5c7d5c" : "grey",
               cursor: isFinished ? "pointer" : "not-allowed",
             }}
             onClick={handleReport}
           >
             Analyze
           </button>
-          <button className="analyze-btn" onClick={handleFinish}>
+          <button 
+            className="analyze-btn"
+            onClick={handleFinish}
+            disabled={isFinished}
+            style={{
+              backgroundColor: isFinished ? "grey" : "#5c7d5c",
+              cursor: isFinished ? "not-allowed" : "pointer",
+            }}
+          >
             ✔ Finish Exercise
           </button>
         </div>
