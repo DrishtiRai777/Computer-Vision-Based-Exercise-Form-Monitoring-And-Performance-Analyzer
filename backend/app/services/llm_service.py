@@ -61,9 +61,10 @@ def generate_overall_feedback_from_sessions(feedback_list):
     prompt = f"""
     These are workout feedback summaries from multiple exercise sessions:
 
-    {combined}
+        {combined}
 
-    Generate overall fitness advice describing improvement areas and progress.
+    Based on this data, generate an overall fitness report that highlights progress and areas for improvement. The response should be written in a single paragraph, use very simple and easy-to-understand language, and must not exceed 200 words. Do not use tables or bullet points.
+    
     """
 
     completion = client.chat.completions.create(
