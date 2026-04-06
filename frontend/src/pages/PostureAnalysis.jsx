@@ -357,14 +357,19 @@ useEffect(() => {
 
   let counter = 0;
   let stage = "DOWN";
-
   let prevAngle = null;
   let bottomReached = false;
   let bottomFrames = 0;
 
-  const UP_THRESHOLD = 160;   // arm straight (down position)
-  const DOWN_THRESHOLD = 50;  // curl up position
+  let elbowBaselineX = null;
+  let elbowDriftFrames = 0;
+  let repIsClean = true;
+
+  const UP_THRESHOLD = 160;
+  const DOWN_THRESHOLD = 50;
   const MIN_BOTTOM_FRAMES = 3;
+  const ELBOW_DRIFT_THRESHOLD = 0.04;
+  const ELBOW_DRIFT_FRAMES = 5;
 
   pose.onResults((results) => {
     if (!results.poseLandmarks) {
@@ -373,105 +378,83 @@ useEffect(() => {
     }
 
     const lm = results.poseLandmarks;
-
-    // Detect visible side
-    const side =
-      lm[11].visibility > lm[12].visibility ? "LEFT" : "RIGHT";
-
+    const side = lm[11].visibility > lm[12].visibility ? "LEFT" : "RIGHT";
     const map = {
-      LEFT: { s: 11, e: 13, w: 15 },
+      LEFT:  { s: 11, e: 13, w: 15 },
       RIGHT: { s: 12, e: 14, w: 16 },
     };
 
     const ids = map[side];
-
     const shoulder = lm[ids.s];
     const elbow = lm[ids.e];
     const wrist = lm[ids.w];
 
-    // 🔑 Core angle
     const elbowAngle = calculateAngle(shoulder, elbow, wrist);
-
     let messages = [];
 
-    // -----------------------------
-    // 🔄 Movement detection
-    // -----------------------------
+    
     if (prevAngle !== null) {
-      if (elbowAngle < prevAngle - 2) {
-        stage = "UP"; // curling up
-      } else if (elbowAngle > prevAngle + 2) {
-        stage = "DOWN"; // lowering
-      }
+      if (elbowAngle < prevAngle - 2) stage = "UP";
+      else if (elbowAngle > prevAngle + 2) stage = "DOWN";
     }
-
     prevAngle = elbowAngle;
-
-    // -----------------------------
-    // 🔽 Bottom detection (fully curled)
-    // -----------------------------
     if (stage === "UP" && elbowAngle < DOWN_THRESHOLD) {
       bottomFrames++;
     } else {
       bottomFrames = 0;
     }
+    if (bottomFrames >= MIN_BOTTOM_FRAMES) bottomReached = true;
 
-    if (bottomFrames >= MIN_BOTTOM_FRAMES) {
-      bottomReached = true;
+    if (elbowAngle > UP_THRESHOLD && elbowBaselineX === null) {
+      elbowBaselineX = elbow.x;
+      repIsClean = true;
+      elbowDriftFrames = 0;
     }
 
-    // -----------------------------
-    // 🔢 REP COUNTING
-    // -----------------------------
-    if (
-      stage === "DOWN" &&
-      elbowAngle > UP_THRESHOLD &&
-      bottomReached
-    ) {
-      counter++;
-      bottomReached = false;
-      bottomFrames = 0;
+    if (elbowBaselineX !== null) {
+      const drift = Math.abs(elbow.x - elbowBaselineX);
+      if (drift > ELBOW_DRIFT_THRESHOLD) {
+        elbowDriftFrames++;
+        if (elbowDriftFrames >= ELBOW_DRIFT_FRAMES) {
+          repIsClean = false;
+        }
+      }
     }
 
-    // -----------------------------
-    // 🧠 FEEDBACK SYSTEM
-    // -----------------------------
-
-    // Arm extension
-    if (elbowAngle > 170) {
-      messages.push("Fully extend your arm");
+    if (stage === "DOWN" && elbowAngle > UP_THRESHOLD && bottomReached) {
+      if (repIsClean) {
+        counter++;
+      } else {
+        messages.push("Rep not counted — elbow moved");
+      }
+      // Reset for next rep
+      bottomReached  = false;
+      bottomFrames   = 0;
+      elbowBaselineX = null;
+      elbowDriftFrames = 0;
+      repIsClean = true;
     }
 
-    // Over-curling
-    if (elbowAngle < 40) {
-      messages.push("Don't over curl");
-    }
-
-    // Elbow stability
-    if (Math.abs(shoulder.x - elbow.x) > 0.1) {
+  
+    if (elbowDriftFrames >= ELBOW_DRIFT_FRAMES) {
       messages.push("Keep elbow fixed");
     }
-
-    // Default positive feedback
+    if (stage === "DOWN" && elbowAngle > 170) {
+      messages.push("Extend arm fully at bottom");
+    }
+    if (elbowAngle < 35) {
+      messages.push("Don't over-curl");
+    }
     if (messages.length === 0) {
-      messages.push("Good curl");
+      messages.push("Good curl!");
     }
 
-    // Add reps
     messages.push(`Reps: ${counter}`);
 
-    // -----------------------------
-    // 📤 STATE UPDATES
-    // -----------------------------
     setFeedback(messages);
-
-    const filtered = messages.filter(
-      (m) => !m.startsWith("Reps")
-    );
-
+    const filtered = messages.filter((m) => !m.startsWith("Reps"));
     latestFeedbackRef.current = filtered;
     feedbackHistoryRef.current.push(...filtered);
-
     setReps(counter);
   });
 
