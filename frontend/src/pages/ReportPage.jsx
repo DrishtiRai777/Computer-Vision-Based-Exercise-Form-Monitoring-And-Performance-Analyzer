@@ -3,61 +3,47 @@ import "./ReportPage.css";
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid,
   LineChart, Line, ResponsiveContainer
-} from "recharts"
-
-
+} from "recharts";
 
 function ReportPage() {
-  const CACHE_KEY = "report_cache";
-  const ONE_DAY = 24 * 60 * 60 * 1000;
-const getCache = () => {
-  const cached = localStorage.getItem(CACHE_KEY);
-  if (!cached) return null;
 
-  const parsed = JSON.parse(cached);
-
-  const isExpired = Date.now() - parsed.timestamp > ONE_DAY;
-
-  if (isExpired) {
-    localStorage.removeItem(CACHE_KEY);
-    return null;
-  }
-
-  return parsed;
-};
-
-const setCache = (data) => {
-  localStorage.setItem(
-    CACHE_KEY,
-    JSON.stringify({
-      ...data,
-      timestamp: Date.now(),
-    })
-  );
-};
   const [sessions, setSessions] = useState([]);
   const [overallFeedback, setOverallFeedback] = useState("");
-
   const [exerciseData, setExerciseData] = useState([]);
   const [dailyData, setDailyData] = useState([]);
 
   useEffect(() => {
-    const cached = getCache();
-    if (cached) {
-    console.log("Using cached data");
-
-    setSessions(cached.sessions);
-    setExerciseData(cached.exerciseData);
-    setDailyData(cached.dailyData);
-    setOverallFeedback(cached.overallFeedback);
-
-    return; 
-    }
+    console.log("useEffect triggered");
 
     const fetchSessionsFirst = async () => {
+
       try {
-        const res = await fetch("http://localhost:8000/user-session-info");
-        const data = await res.json();
+        const token = localStorage.getItem("token");
+
+        if (!token) {
+          console.error("No token found. User not authenticated.");
+          return;
+        }
+
+        const res = await fetch("http://localhost:8000/sessions/user-session-info", {
+          method: "GET",
+          headers: {
+            "Authorization": `Bearer ${token}`,
+          },
+        });
+
+        console.log("Sessions response status:", res.status);
+
+        const text = await res.text();
+        // console.log("Raw sessions response:", text);
+
+        if (!res.ok) {
+          console.error("Sessions API failed");
+          return;
+        }
+
+        const data = JSON.parse(text);
+
         const sessions = data.sessions || [];
 
         const exerciseData = getExerciseData(sessions);
@@ -67,28 +53,42 @@ const setCache = (data) => {
         setExerciseData(exerciseData);
         setDailyData(dailyData);
 
-        const feedbackRes = await fetch("http://localhost:8000/overall-feedback", {
-          method: "POST"
+
+        const feedbackRes = await fetch("http://localhost:8000/users/overall-feedback", {
+          method: "POST",
+          headers: {
+            "Authorization": `Bearer ${token}`,
+          },
         });
 
-        const feedbackData = await feedbackRes.json();
+        console.log("Feedback response status:", feedbackRes.status);
+
+        const feedbackText = await feedbackRes.text();
+        // console.log("Raw feedback response:", feedbackText);
+
+        if (!feedbackRes.ok) {
+          console.error("Feedback API failed");
+          return;
+        }
+
+        const feedbackData = JSON.parse(feedbackText);
+
         setOverallFeedback(feedbackData.overall_feedback);
-        
-        setCache({
-        sessions,
-        exerciseData,
-        dailyData,
-        overallFeedback,
-        });
+
       } catch (err) {
-        console.error(err);
+        console.error("FETCH ERROR:", err);
       }
     };
 
+    console.log("About to call fetchSessionsFirst");
     fetchSessionsFirst();
+
   }, []);
 
+
   const getExerciseData = (sessions) => {
+    console.log("Processing exercise data");
+
     const map = {};
 
     sessions.forEach((s) => {
@@ -105,21 +105,29 @@ const setCache = (data) => {
   };
 
   const getDailyData = (sessions) => {
-  const map = {};
+    console.log("Processing daily data");
 
-  sessions.forEach((s) => {
-    const date = s.created_at.split(", ")[1].split(" ")[0];
+    const map = {};
 
-    const reps = Number(s.reps) || 0;
+    sessions.forEach((s) => {
+      try {
+  
+        const date = s.created_at.split(", ")[1]?.split(" ")[0];
+        const reps = Number(s.reps) || 0;
 
-    map[date] = (map[date] || 0) + reps;
-  });
+        if (date) {
+          map[date] = (map[date] || 0) + reps;
+        }
+      } catch (e) {
+        console.warn("Date parsing error:", s.created_at);
+      }
+    });
 
-  return Object.keys(map).map((key) => ({
-    date: key,
-    reps: map[key], 
-  }));
-};
+    return Object.keys(map).map((key) => ({
+      date: key,
+      reps: map[key],
+    }));
+  };
 
   return (
     <div className="report-wrapper">

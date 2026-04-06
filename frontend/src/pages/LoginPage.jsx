@@ -25,7 +25,8 @@ function LoginPage() {
   const handleGoogleSuccess = async (credentialResponse) => {
   try {
    await loginWithGoogle(credentialResponse.credential);
-   localStorage.setItem("token", credentialResponse.credential);
+  //  localStorage.setItem("token", credentialResponse.credential);
+  
 
    navigate("/");
 
