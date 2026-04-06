@@ -6,6 +6,8 @@ from app.database import get_db
 from app.models.session import Session
 from app.models.exercise import Exercise
 from app.models.user import User
+from sqlalchemy import delete, select
+from datetime import datetime, timedelta
 from app.dependencies.auth import get_current_user
 from app.services.llm_service import generate_overall_feedback
 
@@ -117,29 +119,43 @@ async def get_user_sessions(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
+    try:
+        one_week_ago = datetime.utcnow() - timedelta(weeks=1)
 
-    result = await db.execute(
-        select(Session, Exercise.exercise_name)
-        .join(Exercise, Session.exercise_id == Exercise.exercise_id)
-        .where(Session.user_id == current_user.user_id)
-        .order_by(Session.created_at.desc())
-    )
+        # delete old sessions
+        delete_stmt = delete(Session).where(
+            Session.user_id == current_user.user_id,
+            Session.created_at < one_week_ago
+        )
+        await db.execute(delete_stmt)
 
-    rows = result.all() 
+        
+        result = await db.execute(
+            select(Session, Exercise.exercise_name)
+            .join(Exercise, Session.exercise_id == Exercise.exercise_id)
+            .where(Session.user_id == current_user.user_id)
+            .order_by(Session.created_at.desc())
+        )
 
-    sessions = [
-        {
-            "session_id": session.session_id,
-            "exercise_name": exercise_name,
-            "session_time": session.session_time,
-            "reps": session.reps,
-            "session_feedback": session.session_feedback,
-            "created_at": session.created_at.strftime("%A, %Y-%m-%d %H:%M:%S")
+        rows = result.all()
+
+        sessions = [
+            {
+                "exercise_name": exercise_name,
+                "session_time": session.session_time,
+                "reps": session.reps,
+                "created_at": session.created_at.strftime("%A, %Y-%m-%d %H:%M:%S")
+            }
+            for session, exercise_name in rows
+        ]
+
+        await db.commit() 
+
+        return {
+            "status": "success",
+            "sessions": sessions
         }
-        for session, exercise_name in rows
-    ]
 
-    return {
-        "status": "success",
-        "sessions": sessions
-    }
+    except Exception as e:
+        await db.rollback()
+        raise HTTPException(status_code=500, detail=str(e))

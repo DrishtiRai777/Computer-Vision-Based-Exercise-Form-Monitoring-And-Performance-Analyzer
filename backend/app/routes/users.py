@@ -63,16 +63,16 @@ async def overall_feedback(
         raise HTTPException(status_code=401, detail="Invalid token")
 
     try:
-        one_week_ago = datetime.utcnow() - timedelta(weeks=1)
+        # one_week_ago = datetime.utcnow() - timedelta(weeks=1)
 
-        # Deleting old sesssions
-        delete_stmt = delete(SessionModel).where(
-            SessionModel.user_id == user_id,
-            SessionModel.created_at < one_week_ago
-        )
-        result = await db.execute(delete_stmt)
-        await db.commit()
-        logging.info(f"Deleted {result.rowcount} old sessions")
+        # # Deleting old sesssions
+        # delete_stmt = delete(SessionModel).where(
+        #     SessionModel.user_id == user_id,
+        #     SessionModel.created_at < one_week_ago
+        # )
+        # result = await db.execute(delete_stmt)
+        # await db.commit()
+        # logging.info(f"Deleted {result.rowcount} old sessions")
 
         
         select_stmt = select(SessionModel.session_feedback).where(SessionModel.user_id == user_id)
