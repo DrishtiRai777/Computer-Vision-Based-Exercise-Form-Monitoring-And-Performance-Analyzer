@@ -357,17 +357,23 @@ useEffect(() => {
 
   let counter = 0;
   let stage = "DOWN";
-  let prevAngle = null;
-  let bottomReached = false;
-  let bottomFrames = 0;
 
   let elbowBaselineX = null;
   let elbowDriftFrames = 0;
   let repIsClean = true;
 
-  const UP_THRESHOLD = 160;
-  const DOWN_THRESHOLD = 50;
-  const MIN_BOTTOM_FRAMES = 3;
+  let reachedBottom = false;
+
+  let lastFeedback = "";
+  let feedbackHoldFrames = 0;
+  const FEEDBACK_HOLD = 8;
+
+  let lastRepTime = 0;
+  const MIN_REP_TIME = 800;
+
+  const UP_THRESHOLD = 165;
+  const DOWN_THRESHOLD = 45;
+
   const ELBOW_DRIFT_THRESHOLD = 0.04;
   const ELBOW_DRIFT_FRAMES = 5;
 
@@ -378,9 +384,10 @@ useEffect(() => {
     }
 
     const lm = results.poseLandmarks;
+
     const side = lm[11].visibility > lm[12].visibility ? "LEFT" : "RIGHT";
     const map = {
-      LEFT:  { s: 11, e: 13, w: 15 },
+      LEFT: { s: 11, e: 13, w: 15 },
       RIGHT: { s: 12, e: 14, w: 16 },
     };
 
@@ -390,26 +397,6 @@ useEffect(() => {
     const wrist = lm[ids.w];
 
     const elbowAngle = calculateAngle(shoulder, elbow, wrist);
-    let messages = [];
-
-    
-    if (prevAngle !== null) {
-      if (elbowAngle < prevAngle - 2) stage = "UP";
-      else if (elbowAngle > prevAngle + 2) stage = "DOWN";
-    }
-    prevAngle = elbowAngle;
-    if (stage === "UP" && elbowAngle < DOWN_THRESHOLD) {
-      bottomFrames++;
-    } else {
-      bottomFrames = 0;
-    }
-    if (bottomFrames >= MIN_BOTTOM_FRAMES) bottomReached = true;
-
-    if (elbowAngle > UP_THRESHOLD && elbowBaselineX === null) {
-      elbowBaselineX = elbow.x;
-      repIsClean = true;
-      elbowDriftFrames = 0;
-    }
 
     if (elbowBaselineX !== null) {
       const drift = Math.abs(elbow.x - elbowBaselineX);
@@ -421,46 +408,73 @@ useEffect(() => {
       }
     }
 
-    if (stage === "DOWN" && elbowAngle > UP_THRESHOLD && bottomReached) {
-      if (repIsClean) {
-        counter++;
-      } else {
-        messages.push("Rep not counted — elbow moved");
+    if (elbowAngle < DOWN_THRESHOLD) {
+      stage = "UP";
+      reachedBottom = true;
+    }
+
+    if (elbowAngle > UP_THRESHOLD) {
+      if (stage === "UP" && reachedBottom) {
+        const now = Date.now();
+        const tooFast = now - lastRepTime < MIN_REP_TIME;
+
+        if (repIsClean && !tooFast) {
+          counter++;
+        }
+
+        lastRepTime = now;
       }
-      // Reset for next rep
-      bottomReached  = false;
-      bottomFrames   = 0;
-      elbowBaselineX = null;
+
+      stage = "DOWN";
+      elbowBaselineX = elbow.x;
       elbowDriftFrames = 0;
       repIsClean = true;
+      reachedBottom = false;
     }
 
-  
+    let feedback = null;
+
     if (elbowDriftFrames >= ELBOW_DRIFT_FRAMES) {
-      messages.push("Keep elbow fixed");
-    }
-    if (stage === "DOWN" && elbowAngle > 170) {
-      messages.push("Extend arm fully at bottom");
-    }
-    if (elbowAngle < 35) {
-      messages.push("Don't over-curl");
-    }
-    if (messages.length === 0) {
-      messages.push("Good curl!");
+      feedback = "Keep your elbow fixed";
+    } else if (stage === "UP") {
+      if (elbowAngle > 90) {
+        feedback = "Curl higher";
+      } else if (elbowAngle < 35) {
+        feedback = "Don't over-curl";
+      } else {
+        feedback = "Squeeze at the top";
+      }
+    } else if (stage === "DOWN") {
+      if (elbowAngle < 120) {
+        feedback = "Lower slowly";
+      } else if (elbowAngle < 160) {
+        feedback = "Extend more";
+      } else {
+        feedback = "Good extension";
+      }
     }
 
-    messages.push(`Reps: ${counter}`);
+    if (!feedback) {
+      feedback = "Good curl";
+    }
 
-    setFeedback(messages);
-    const filtered = messages.filter((m) => !m.startsWith("Reps"));
+    if (feedback !== lastFeedback) {
+      feedbackHoldFrames = 0;
+      lastFeedback = feedback;
+    } else {
+      feedbackHoldFrames++;
+    }
+
+    if (feedbackHoldFrames < FEEDBACK_HOLD) {
+      setFeedback([feedback, `Reps: ${counter}`]);
+    }
+
+    const filtered = [feedback];
     latestFeedbackRef.current = filtered;
     feedbackHistoryRef.current.push(...filtered);
     setReps(counter);
   });
 
-  // -----------------------------
-  // 📷 CAMERA SETUP
-  // -----------------------------
   const camera = new Camera(videoElement, {
     onFrame: async () => {
       await pose.send({ image: videoElement });
@@ -472,6 +486,7 @@ useEffect(() => {
   camera.start();
   return camera;
 }
+
 
   function createPushupHandler(videoElement) {
   const pose = new Pose({
