@@ -56,8 +56,6 @@ function AuthPage() {
   const handleGoogleSuccess = async (credentialResponse) => {
   try {
     await loginWithGoogle(credentialResponse.credential);
-    // localStorage.setItem("token", credentialResponse.credential);
-
     navigate("/");
   } catch (err) {
     console.error(err);
@@ -69,7 +67,6 @@ function AuthPage() {
     <div className="auth-wrapper">
       <div className="auth-card">
 
-        {/* LEFT IMAGE AREA */}
         <div className="auth-left">
           <img
             src="/posture.png"
@@ -78,7 +75,6 @@ function AuthPage() {
           />
 
         </div>
-        {/* RIGHT FORM AREA */}
 
         <div className="auth-right">
 

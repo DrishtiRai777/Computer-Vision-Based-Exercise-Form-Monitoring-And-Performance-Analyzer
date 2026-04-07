@@ -10,7 +10,6 @@ export async function sendSessionSnapshot(snapshot) {
     return;
   }
 
-  // Final snapshot
   feedbackSnapshots.push(snapshot);
 
 

@@ -30,7 +30,6 @@ function Home() {
 
 function App() {
   return (
-    // GoogleOAuthProvider wrap
     <GoogleOAuthProvider clientId="370998476708-etqjfo17tem9fvedq1auert06skp2se7.apps.googleusercontent.com">
       <Router>
         <Layout>

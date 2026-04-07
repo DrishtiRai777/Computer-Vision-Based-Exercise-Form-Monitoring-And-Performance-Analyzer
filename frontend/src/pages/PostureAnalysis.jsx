@@ -6,7 +6,7 @@ import { sendSessionSnapshot } from "../services/sessionService";
 import { getFeedbackMap } from "../utils/feedback";
 
 function speak(text) {
-  window.speechSynthesis.cancel(); // stop previous if any
+  window.speechSynthesis.cancel(); 
 
   const utterance = new SpeechSynthesisUtterance(text);
   utterance.rate = 1;
@@ -24,8 +24,8 @@ function PostureAnalysis() {
   const navigate = useNavigate();
   const [reportData, setReportData] = useState(null);
   const [feedback, setFeedback] = useState([]);
-  const [exerciseStarted, setExerciseStarted] = useState(false); // true after countdown
-  const [exerciseTime, setExerciseTime] = useState(0); // counts seconds after start
+  const [exerciseStarted, setExerciseStarted] = useState(false); 
+  const [exerciseTime, setExerciseTime] = useState(0);
   const [countdown, setCountdown] = useState(5);
   const [hasStarted, setHasStarted] = useState(false); 
   const [isFinished, setIsFinished] = useState(false);
@@ -185,8 +185,7 @@ useEffect(() => {
       if (startKneeAngle !== null) {
         angleDrop = startKneeAngle - kneeAngle;
       }
-  
-      // all Conditions
+
       const correctDepth = kneeAngle < 100;
       const hipsLowEnough = hipDrop > HIP_DROP_REQUIRED;
       const backOk = backAngle > 25 && backAngle < 70;
@@ -200,8 +199,6 @@ useEffect(() => {
         kneesOk &&
         enoughMovement;
   
-      
-      // Rep counting
       if (stage === "UP" && kneeAngle < 140) {
         stage = "DOWN";
         bottomFrames = 0;
@@ -232,7 +229,6 @@ useEffect(() => {
         bottomFrames = 0;
       }
   
-      // Feedback
       let messages = [];
   
       if (stage === "DOWN") {
@@ -248,7 +244,6 @@ useEffect(() => {
   
       messages.push(`Reps: ${counter}`);
       setFeedback(messages);
-      //aggregating feedback
       const filtered = messages.filter(m => !m.startsWith("Reps"));
       latestFeedbackRef.current = filtered;
       feedbackHistoryRef.current.push(...filtered);
@@ -326,7 +321,6 @@ useEffect(() => {
       setFeedback(newFeedback);
       latestFeedbackRef.current = newFeedback;
 
-      //aggregating feedback
       feedbackHistoryRef.current.push(...newFeedback);
     });
 
@@ -504,14 +498,14 @@ useEffect(() => {
   let counter = 0;
   let stage = "UP";
 
-  let started = false; // 🔥 gate control
+  let started = false; 
   let stableFrames = 0;
 
   let prevAngle = null;
   let bottomReached = false;
   let bottomFrames = 0;
 
-  const START_FRAMES = 10; // stability before starting
+  const START_FRAMES = 10; 
   const MIN_BOTTOM_FRAMES = 3;
 
   const UP_THRESHOLD = 165;
@@ -548,9 +542,6 @@ useEffect(() => {
 
     let messages = [];
 
-    // ----------------------------------
-    // 🟡 PHASE 1: WAIT FOR GOOD POSTURE
-    // ----------------------------------
     if (!started) {
       if (goodPosture) {
         stableFrames++;
@@ -570,9 +561,6 @@ useEffect(() => {
       return;
     }
 
-    // ----------------------------------
-    // 🔵 PHASE 2: MOVEMENT TRACKING
-    // ----------------------------------
     if (prevAngle !== null) {
       if (elbowAngle < prevAngle - 2) {
         stage = "DOWN";
@@ -583,9 +571,6 @@ useEffect(() => {
 
     prevAngle = elbowAngle;
 
-    // ----------------------------------
-    // 🔽 BOTTOM DETECTION
-    // ----------------------------------
     if (stage === "DOWN" && elbowAngle < DOWN_THRESHOLD) {
       bottomFrames++;
     } else {
@@ -596,9 +581,6 @@ useEffect(() => {
       bottomReached = true;
     }
 
-    // ----------------------------------
-    // 🔢 REP COUNT (STRICT)
-    // ----------------------------------
     if (
       stage === "UP" &&
       elbowAngle > UP_THRESHOLD &&
@@ -609,10 +591,6 @@ useEffect(() => {
       bottomReached = false;
       bottomFrames = 0;
     }
-
-    // ----------------------------------
-    // 🔴 FEEDBACK SYSTEM (MULTIPLE)
-    // ----------------------------------
 
     if (!goodPosture) {
       if (backAngle < 160) {
@@ -631,7 +609,6 @@ useEffect(() => {
       messages.push("Keep hands under shoulders");
     }
 
-    // default
     if (messages.length === 0) {
       messages.push("Good form");
     }
@@ -639,7 +616,7 @@ useEffect(() => {
     messages.push(`Reps: ${counter}`);
 
     setFeedback(messages);
-    // aggregating feedback 
+
     const filtered = messages.filter(m => !m.startsWith("Reps"));
     feedbackHistoryRef.current.push(...filtered);
     latestFeedbackRef.current = filtered;
@@ -667,7 +644,6 @@ useEffect(() => {
 
   
   useEffect(() => {
-  // 🔹 START CAMERA ONLY ONCE
   if (!isInitialized.current) {
     isInitialized.current = true;
 
@@ -684,7 +660,6 @@ useEffect(() => {
   let countdownInterval;
   let exerciseInterval;
 
-  // 🔹 START COUNTDOWN ONLY AFTER BUTTON CLICK
   if (hasStarted) {
     setCountdown(5);
 
@@ -772,7 +747,7 @@ const overlayStyle = {
             position: "relative",
           }}
         >
-          {/* CAMERA SECTION */}
+          
           <div
             className="camera-section"
             style={{
@@ -781,7 +756,7 @@ const overlayStyle = {
               position: "relative",
             }}
           >
-            {/* Video Feed */}
+            
             <video
               ref={videoRef}
               autoPlay
@@ -794,7 +769,7 @@ const overlayStyle = {
               }}
             />
 
-            {/* BEFORE START */}
+            
             {!hasStarted && (
               <div
                 style={{
@@ -820,7 +795,7 @@ const overlayStyle = {
               </div>
             )}
 
-            {/* COUNTDOWN */}
+          
             {hasStarted && !exerciseStarted && countdown > 0 && (
               <div
                 style={{
@@ -849,7 +824,7 @@ const overlayStyle = {
               </div>
             )}
 
-            {/* EXERCISE TIMER */}
+           
             {exerciseStarted && (
               <div
                 style={{
@@ -873,7 +848,7 @@ const overlayStyle = {
             )}
           </div>
 
-          {/* FEEDBACK PANEL */}
+          
           <div
             className="feedback-panel"
             style={{
@@ -926,7 +901,7 @@ const overlayStyle = {
           </div>
         </div>
 
-        {/* BUTTON FOOTER */}
+        
         <div className="button-footer">
           <button
             className="reset-btn"

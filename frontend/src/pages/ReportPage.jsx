@@ -35,7 +35,6 @@ function ReportPage() {
         console.log("Sessions response status:", res.status);
 
         const text = await res.text();
-        // console.log("Raw sessions response:", text);
 
         if (!res.ok) {
           console.error("Sessions API failed");
@@ -64,7 +63,6 @@ function ReportPage() {
         console.log("Feedback response status:", feedbackRes.status);
 
         const feedbackText = await feedbackRes.text();
-        // console.log("Raw feedback response:", feedbackText);
 
         if (!feedbackRes.ok) {
           console.error("Feedback API failed");
