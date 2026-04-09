@@ -2,14 +2,16 @@ from fastapi import FastAPI
 from app.routes import users, exercises, sessions
 from fastapi.middleware.cors import CORSMiddleware
 
+from init_db import init_models
+
 # Create a FastAPI instance
 app = FastAPI()
 
 origins = [
     "http://localhost:3000",  
     "http://127.0.0.1:3000",
-    "https://exercise-posture-analyzer.vercel.app/"
 ]
+ 
 
 app.add_middleware(
     CORSMiddleware,
