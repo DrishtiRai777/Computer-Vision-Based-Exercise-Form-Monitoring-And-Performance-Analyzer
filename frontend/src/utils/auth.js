@@ -1,5 +1,5 @@
 export const loginWithGoogle = async (googleToken) => {
-  const res = await fetch("http://localhost:8000/users/auth/google", {
+  const res = await fetch("https://exercise-kvpe.onrender.com/users/auth/google", {
     method: "POST",
     headers: {
       "Content-Type": "application/json"

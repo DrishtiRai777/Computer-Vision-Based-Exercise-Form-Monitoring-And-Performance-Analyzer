@@ -25,7 +25,7 @@ function ReportPage() {
           return;
         }
 
-        const res = await fetch("http://localhost:8000/sessions/user-session-info", {
+        const res = await fetch("https://exercise-kvpe.onrender.com/sessions/user-session-info", {
           method: "GET",
           headers: {
             "Authorization": `Bearer ${token}`,
@@ -53,7 +53,7 @@ function ReportPage() {
         setDailyData(dailyData);
 
 
-        const feedbackRes = await fetch("http://localhost:8000/users/overall-feedback", {
+        const feedbackRes = await fetch("https://exercise-kvpe.onrender.com/users/overall-feedback", {
           method: "POST",
           headers: {
             "Authorization": `Bearer ${token}`,
