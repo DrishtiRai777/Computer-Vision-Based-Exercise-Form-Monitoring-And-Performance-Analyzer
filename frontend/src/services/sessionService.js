@@ -14,7 +14,7 @@ export async function sendSessionSnapshot(snapshot) {
 
 
   try {
-    const res = await fetch("http://localhost:8000/sessions/", {
+    const res = await fetch("https://exercise-kvpe.onrender.com/sessions/", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
