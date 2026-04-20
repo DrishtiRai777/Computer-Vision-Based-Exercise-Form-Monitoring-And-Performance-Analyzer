@@ -103,4 +103,4 @@ async def overall_feedback(
     except Exception as e:
         await db.rollback()
         logging.exception("Unexpected error in overall-feedback")
-        return {"error": str(e)}
+        raise HTTPException(status_code=500, detail=str(e))
